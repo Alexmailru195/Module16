@@ -1,0 +1,11 @@
+{% extends 'dogs/base.html' %}
+
+{% block content %}
+<h2>{% if form.instance.pk %}Редактировать{% else %}Добавить{% endif %} питомца</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Сохранить</button>
+</form>
+<a href="{% url 'dog_list' %}">Отмена</a>
+{% endblock %}

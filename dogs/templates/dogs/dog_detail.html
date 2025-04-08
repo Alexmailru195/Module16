@@ -1,0 +1,15 @@
+{% extends 'dogs/base.html' %}
+
+{% block title %}
+{{ dog.name }}
+{% endblock %}
+
+{% block content %}
+<h2>{{ dog.name }}</h2>
+<p>Порода: {{ dog.breed }}</p>
+<p>Дата рождения: {{ dog.birth_date }}</p>
+{% if dog.photo %}
+<img src="{{ dog.photo.url }}" alt="{{ dog.name }}" width="200">
+{% endif %}
+<a href="{% url 'dog_list' %}">Назад к списку</a>
+{% endblock %}

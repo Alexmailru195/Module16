@@ -1,0 +1,33 @@
+{% extends 'dogs/base.html' %}
+
+{% block content %}
+<h2>Список питомцев</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Имя</th>
+            <th>Порода</th>
+            <th>Дата рождения</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dog in dogs %}
+        <tr>
+            <td><a href="{% url 'dog_detail' dog.pk %}">{{ dog.name }}</a></td>
+            <td>{{ dog.breed }}</td>
+            <td>{{ dog.birth_date }}</td>
+            <td>
+                <a href="{% url 'dog_update' dog.pk %}">Редактировать</a> |
+                <a href="{% url 'dog_delete' dog.pk %}">Удалить</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">Нет питомцев в базе данных.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'dog_create' %}">Добавить нового питомца</a>
+{% endblock %}
