@@ -1,33 +1,47 @@
-{% extends 'dogs/base.html' %}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Список собак{% endblock %}
 
 {% block content %}
-<h2>Список питомцев</h2>
-<table>
+<h2>Список собак</h2>
+<a href="{% url 'dog_create' %}" class="btn">Добавить собаку</a>
+
+<table class="dog-table">
     <thead>
         <tr>
+            <th>Фото</th>
             <th>Имя</th>
             <th>Порода</th>
             <th>Дата рождения</th>
+            <th>Владелец</th>
             <th>Действия</th>
         </tr>
     </thead>
     <tbody>
         {% for dog in dogs %}
         <tr>
+            <td>
+                {% if dog.photo %}
+                    <img src="{{ dog.photo.url }}" alt="{{ dog.name }}" width="100">
+                {% else %}
+                    <em>Нет фото</em>
+                {% endif %}
+            </td>
             <td><a href="{% url 'dog_detail' dog.pk %}">{{ dog.name }}</a></td>
             <td>{{ dog.breed }}</td>
             <td>{{ dog.birth_date }}</td>
+            <td>{{ dog.owner.username }}</td>
             <td>
-                <a href="{% url 'dog_update' dog.pk %}">Редактировать</a> |
-                <a href="{% url 'dog_delete' dog.pk %}">Удалить</a>
+                <a href="{% url 'dog_update' dog.pk %}" class="btn btn-edit">Редактировать</a> |
+                <a href="{% url 'dog_delete' dog.pk %}" class="btn btn-delete">Удалить</a>
             </td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="4">Нет питомцев в базе данных.</td>
+            <td colspan="6" class="no-data">Нет собак в базе данных.</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
-<a href="{% url 'dog_create' %}">Добавить нового питомца</a>
 {% endblock %}

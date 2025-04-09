@@ -10,5 +10,7 @@
 {% if user.avatar %}
 <img src="{{ user.avatar.url }}" alt="Avatar" width="100">
 {% endif %}
+<a href="{% url 'update_profile' %}">Изменить данные</a> |
+<a href="{% url 'change_password' %}">Сменить пароль</a> |
 <a href="{% url 'logout' %}">Выйти</a>
 {% endblock %}
