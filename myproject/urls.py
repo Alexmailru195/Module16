@@ -32,6 +32,8 @@ urlpatterns = [
 
     # Маршруты для приложения dogs
     path('dogs/', include('dogs.urls')),  # Маршруты для собак
+
+    path('users/', include('users.urls')),  # Подключение маршрутов приложения users
 ]
 
 # Добавляем обработку медиафайлов в режиме DEBUG

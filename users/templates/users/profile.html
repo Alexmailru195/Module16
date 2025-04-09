@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Профиль</h2>
+<p>Имя пользователя: {{ user.username }}</p>
+<p>Email: {{ user.email }}</p>
+<p>Телефон: {{ user.phone_number }}</p>
+<p>Адрес: {{ user.address }}</p>
+<p>Дата рождения: {{ user.date_of_birth }}</p>
+{% if user.avatar %}
+<img src="{{ user.avatar.url }}" alt="Avatar" width="100">
+{% endif %}
+<a href="{% url 'logout' %}">Выйти</a>
+{% endblock %}
