@@ -1,11 +1,14 @@
-{% extends 'dogs/base.html' %}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Редактировать собаку{% else %}Добавить собаку{% endif %}{% endblock %}
 
 {% block content %}
-<h2>{% if form.instance.pk %}Редактировать{% else %}Добавить{% endif %} питомца</h2>
+<h2>{% if form.instance.pk %}Редактировать собаку{% else %}Добавить собаку{% endif %}</h2>
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Сохранить</button>
+    <button type="submit" class="btn">Сохранить</button>
 </form>
-<a href="{% url 'dog_list' %}">Отмена</a>
+<a href="{% url 'dog_list' %}" class="btn">Назад к списку собак</a>
 {% endblock %}
