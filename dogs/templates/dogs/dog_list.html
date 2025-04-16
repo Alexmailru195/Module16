@@ -33,8 +33,10 @@
             <td>{{ dog.birth_date }}</td>
             <td>{{ dog.owner.username }}</td>
             <td>
-                <a href="{% url 'dog_update' dog.pk %}" class="btn">Редактировать</a>
-                <a href="{% url 'dog_delete' dog.pk %}" class="btn btn-danger">Удалить</a>
+                {% if user == dog.owner %}
+                    <a href="{% url 'dog_update' dog.pk %}" class="btn">Редактировать</a>
+                    <a href="{% url 'dog_delete' dog.pk %}" class="btn btn-danger">Удалить</a>
+                {% endif %}
             </td>
         </tr>
         {% empty %}
