@@ -2,7 +2,15 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomUserUpdateForm, PasswordChangeForm
+from django.core.mail import send_mail
+from django.conf import settings
+from .forms import (
+    CustomUserCreationForm,
+    CustomAuthenticationForm,
+    CustomUserUpdateForm,
+    PasswordChangeForm,
+)
+from .models import CustomUser
 
 # Главная страница
 def home(request):
@@ -21,6 +29,16 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)  # Автоматический вход после регистрации
+
+            # Отправка письма о регистрации
+            send_mail(
+                'Регистрация на сайте',
+                f'Здравствуйте, {user.username}! Вы успешно зарегистрировались.',
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+
             messages.success(request, "Регистрация успешна!")
             return redirect('profile')
         else:
@@ -105,3 +123,36 @@ def user_logout(request):
     logout(request)
     messages.info(request, "Вы успешно вышли из аккаунта.")
     return redirect('login')
+
+
+def register(request):
+    """
+    Обрабатывает регистрацию нового пользователя.
+    """
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Сохраняем пользователя
+            user = form.save()
+
+            # Автоматический вход после регистрации
+            login(request, user)
+
+            # Отправка письма на email нового пользователя
+            recipient_email = form.cleaned_data['email']  # Получаем email из формы
+            send_mail(
+                'Регистрация на сайте',  # Тема письма
+                f'Здравствуйте, {user.username}! Вы успешно зарегистрировались.',
+                settings.DEFAULT_FROM_EMAIL,  # Email отправителя
+                [recipient_email],  # Email получателя
+                fail_silently=False,
+            )
+
+            messages.success(request, "Регистрация успешна! Проверьте ваш email.")
+            return redirect('profile')
+        else:
+            messages.error(request, "Ошибка в форме. Проверьте введенные данные.")
+    else:
+        form = CustomUserCreationForm()
+
+    return render(request, 'users/register.html', {'form': form})
