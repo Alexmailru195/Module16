@@ -1,23 +1,31 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from django.conf import settings
+
 from .forms import (
     CustomUserCreationForm,
     CustomAuthenticationForm,
     CustomUserUpdateForm,
     PasswordChangeForm,
 )
+
 from .models import CustomUser
 
-# Главная страница
+from .utils import generate_random_password
+
+
 def home(request):
     """
     Отображает домашнюю страницу.
     """
     return render(request, 'users/home.html')
+
 
 # Регистрация нового пользователя
 def register(request):
@@ -27,25 +35,40 @@ def register(request):
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST, request.FILES)
         if form.is_valid():
-            user = form.save()
-            login(request, user)  # Автоматический вход после регистрации
+            # Генерация случайного пароля
+            temp_password = generate_random_password()
 
-            # Отправка письма о регистрации
+            # Создание пользователя
+            user = form.save(commit=False)
+            user.set_password(temp_password)
+            user.save()
+
+            # Отправка письма с временным паролем
+            subject = 'Ваш временный пароль'
+            html_message = render_to_string(
+                'emails/temp_password_email.html', {'temp_password': temp_password}
+            )
+            plain_message = strip_tags(html_message)
             send_mail(
-                'Регистрация на сайте',
-                f'Здравствуйте, {user.username}! Вы успешно зарегистрировались.',
+                subject,
+                plain_message,
                 settings.DEFAULT_FROM_EMAIL,
                 [user.email],
+                html_message=html_message,
                 fail_silently=False,
             )
 
-            messages.success(request, "Регистрация успешна!")
-            return redirect('profile')
+            messages.success(
+                request,
+                "Регистрация успешна! Проверьте ваш email для получения временного пароля."
+            )
+            return redirect('login')
         else:
             messages.error(request, "Ошибка в форме. Проверьте введенные данные.")
     else:
         form = CustomUserCreationForm()
     return render(request, 'users/register.html', {'form': form})
+
 
 # Вход пользователя
 def user_login(request):
@@ -70,6 +93,7 @@ def user_login(request):
         form = CustomAuthenticationForm()
     return render(request, 'users/login.html', {'form': form})
 
+
 # Просмотр профиля пользователя
 @login_required
 def profile(request):
@@ -77,6 +101,7 @@ def profile(request):
     Отображает информацию о текущем пользователе.
     """
     return render(request, 'users/profile.html', {'user': request.user})
+
 
 # Изменение данных аккаунта
 @login_required
@@ -96,6 +121,7 @@ def update_profile(request):
         form = CustomUserUpdateForm(instance=request.user)
     return render(request, 'users/update_profile.html', {'form': form})
 
+
 # Смена пароля
 @login_required
 def change_password(request):
@@ -106,7 +132,7 @@ def change_password(request):
         form = PasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
             form.save()
-            update_session_auth_hash(request, form.user)  # Обновляем сессию после смены пароля
+            update_session_auth_hash(request, form.user)
             messages.success(request, "Пароль успешно изменён!")
             return redirect('profile')
         else:
@@ -114,6 +140,7 @@ def change_password(request):
     else:
         form = PasswordChangeForm(user=request.user)
     return render(request, 'users/change_password.html', {'form': form})
+
 
 # Выход пользователя
 def user_logout(request):
@@ -125,34 +152,43 @@ def user_logout(request):
     return redirect('login')
 
 
-def register(request):
+# Генерация временного пароля
+def generate_temp_password(request):
     """
-    Обрабатывает регистрацию нового пользователя.
+    Генерирует временный пароль и отправляет его на email пользователя.
     """
+    User = get_user_model()
     if request.method == "POST":
-        form = CustomUserCreationForm(request.POST, request.FILES)
-        if form.is_valid():
-            # Сохраняем пользователя
-            user = form.save()
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            messages.error(request, "Пользователь с таким email не найден.")
+            return redirect('generate_temp_password')
 
-            # Автоматический вход после регистрации
-            login(request, user)
+        # Генерация случайного пароля
+        temp_password = generate_random_password()
 
-            # Отправка письма на email нового пользователя
-            recipient_email = form.cleaned_data['email']  # Получаем email из формы
-            send_mail(
-                'Регистрация на сайте',  # Тема письма
-                f'Здравствуйте, {user.username}! Вы успешно зарегистрировались.',
-                settings.DEFAULT_FROM_EMAIL,  # Email отправителя
-                [recipient_email],  # Email получателя
-                fail_silently=False,
-            )
+        # Устанавливаем новый пароль
+        user.set_password(temp_password)
+        user.save()
 
-            messages.success(request, "Регистрация успешна! Проверьте ваш email.")
-            return redirect('profile')
-        else:
-            messages.error(request, "Ошибка в форме. Проверьте введенные данные.")
-    else:
-        form = CustomUserCreationForm()
+        # Отправляем письмо с временным паролем
+        subject = 'Ваш временный пароль'
+        html_message = render_to_string(
+            'emails/temp_password_email.html', {'temp_password': temp_password}
+        )
+        plain_message = strip_tags(html_message)  # Преобразуем HTML в текст
+        send_mail(
+            subject,
+            plain_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
 
-    return render(request, 'users/register.html', {'form': form})
+        messages.success(request, "Временный пароль отправлен на ваш email.")
+        return redirect('login')
+
+    return render(request, 'users/generate_temp_password.html')
