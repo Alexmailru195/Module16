@@ -1,4 +1,3 @@
-/* Общие стили */
 body {
     font-family: 'Arial', sans-serif;
     margin: 0;
@@ -26,7 +25,6 @@ a:hover {
     padding: 20px;
 }
 
-/* Шапка */
 header {
     background-color: #2c3e50;
     color: white;
@@ -47,7 +45,6 @@ header nav ul li a {
     font-weight: bold;
 }
 
-/* Кнопки */
 .btn {
     display: inline-block;
     padding: 10px 20px;
@@ -70,7 +67,6 @@ header nav ul li a {
     background-color: #c0392b;
 }
 
-/* Таблицы */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -96,7 +92,6 @@ table img {
     border-radius: 5px;
 }
 
-/* Формы */
 form {
     background-color: white;
     padding: 20px;
@@ -129,7 +124,6 @@ form button:hover {
     background-color: #2980b9;
 }
 
-/* Сообщения */
 .messages {
     margin-top: 20px;
 }
@@ -148,4 +142,14 @@ form button:hover {
     padding: 10px;
     border-radius: 5px;
     text-align: center;
+}
+
+.footer {
+    background-color: #8b4513;
+    color: #ffffff;
+    text-align: center;
+    padding: 15px 0;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
 }
