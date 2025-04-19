@@ -3,11 +3,24 @@ from .models import Breed, Dog
 
 @admin.register(Breed)
 class BreedAdmin(admin.ModelAdmin):
+    """
+    Административная панель для модели Breed (Порода).
+    """
     list_display = ('name', 'description')
     search_fields = ('name',)
 
+
 @admin.register(Dog)
 class DogAdmin(admin.ModelAdmin):
+    """
+    Административная панель для модели Dog (Собака).
+    """
     list_display = ('name', 'breed', 'owner', 'birth_date')
     list_filter = ('breed', 'owner')
     search_fields = ('name', 'owner__username')
+
+    def get_queryset(self, request):
+        """
+        Переопределяем QuerySet для оптимизации запросов.
+        """
+        return super().get_queryset(request).select_related('breed', 'owner')

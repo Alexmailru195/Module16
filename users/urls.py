@@ -1,28 +1,41 @@
 from django.urls import path
-from . import views
+from .views import (
+    HomeView,
+    UserCreateView,
+    UserLoginView,
+    ProfileView,
+    MyDogsView,
+    UpdateProfileView,
+    ChangePasswordView,
+    UserLogoutView,
+    GenerateTempPasswordView,
+)
 
 urlpatterns = [
     # Домашняя страница
-    path('', views.home, name='home'),
+    path('', HomeView.as_view(), name='home'),
 
     # Регистрация нового пользователя
-    path('register/', views.register, name='register'),
+    path('register/', UserCreateView.as_view(), name='register'),
 
     # Вход в аккаунт
-    path('login/', views.user_login, name='login'),
+    path('login/', UserLoginView.as_view(), name='login'),
 
     # Просмотр профиля
-    path('profile/', views.profile, name='profile'),
+    path('profile/', ProfileView.as_view(), name='profile'),
+
+    # Список собак пользователя
+    path('my-dogs/', MyDogsView.as_view(), name='my_dogs'),
 
     # Изменение данных аккаунта
-    path('update-profile/', views.update_profile, name='update_profile'),
+    path('update-profile/<int:pk>/', UpdateProfileView.as_view(), name='update_profile'),
 
     # Смена пароля
-    path('change-password/', views.change_password, name='change_password'),
+    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
 
     # Выход из аккаунта
-    path('logout/', views.user_logout, name='logout'),
+    path('logout/', UserLogoutView.as_view(), name='logout'),
 
     # Генерация временного пароля (восстановление доступа)
-    path('generate-temp-password/', views.generate_temp_password, name='generate_temp_password'),
+    path('generate-temp-password/', GenerateTempPasswordView.as_view(), name='generate_temp_password'),
 ]

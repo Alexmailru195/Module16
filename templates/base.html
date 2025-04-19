@@ -16,7 +16,7 @@
                 <!-- Ссылки для авторизованных пользователей -->
                 {% if user.is_authenticated %}
                     <li><a href="{% url 'profile' %}">Профиль</a></li>
-                    <li><a href="{% url 'update_profile' %}">Изменить данные</a></li>
+                    <li><a href="{% url 'update_profile' user.pk %}">Изменить данные</a></li>
                     <li><a href="{% url 'change_password' %}">Сменить пароль</a></li>
                     <li><a href="{% url 'dog_list' %}">Список собак</a></li>
                     <li><a href="{% url 'dog_create' %}">Добавить собаку</a></li>
@@ -38,8 +38,7 @@
     </main>
 
     <footer class="footer">
-        <p>&copy; 2025 MyProject. Все права защищены.</p>
-        <p>Свяжитесь с нами: shph796@gmail.com</p>
+        <p><span style="float: left, margin-right: 1px">&copy; 2025 MyProject. Все права защищены.</span> <span style="float: right, margin-right: 1px">Свяжитесь с нами: shph796@gmail.com</span></p>
     </footer>
 </body>
 </html>

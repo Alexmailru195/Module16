@@ -3,6 +3,9 @@ from .models import Dog
 from datetime import date
 
 class DogForm(forms.ModelForm):
+    """
+    Форма для создания или редактирования собаки.
+    """
     class Meta:
         model = Dog
         fields = ['name', 'breed', 'birth_date', 'photo']
@@ -21,3 +24,13 @@ class DogForm(forms.ModelForm):
         if birth_date and birth_date > date.today():
             raise forms.ValidationError("Дата рождения не может быть в будущем.")
         return birth_date
+
+    def clean(self):
+        """
+        Общая валидация формы.
+        Вызывает метод clean() модели для дополнительных проверок.
+        """
+        cleaned_data = super().clean()
+        # Вызываем валидацию модели
+        self.instance.clean()
+        return cleaned_data

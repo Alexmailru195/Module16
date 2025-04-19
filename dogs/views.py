@@ -101,9 +101,21 @@ from .forms import DogForm
 
 # Class-Based View для списка собак
 class DogListView(ListView):
+    """
+    Отображает список всех собак.
+    Если пользователь авторизован, отображаются только его собаки.
+    """
     model = Dog
     template_name = 'dogs/dog_list.html'
     context_object_name = 'dogs'
+
+    def get_queryset(self):
+        """
+        Возвращает QuerySet собак:
+        - Только собак текущего пользователя, если он авторизован.
+        - Пустой QuerySet, если пользователь не авторизован.
+        """
+        return Dog.objects.all().select_related('owner', 'breed')
 
 # Function-Based View для деталей собаки
 def dog_detail(request, pk):
@@ -112,6 +124,7 @@ def dog_detail(request, pk):
     """
     dog = get_object_or_404(Dog, pk=pk)
     return render(request, 'dogs/dog_detail.html', {'dog': dog})
+
 
 # Function-Based View для создания новой собаки
 @login_required
@@ -132,6 +145,7 @@ def dog_create(request):
     else:
         form = DogForm()
     return render(request, 'dogs/dog_form.html', {'form': form})
+
 
 # Function-Based View для обновления информации о собаке
 @login_required
@@ -158,6 +172,7 @@ def dog_update(request, pk):
     else:
         form = DogForm(instance=dog)
     return render(request, 'dogs/dog_form.html', {'form': form})
+
 
 # Function-Based View для удаления собаки
 @login_required
