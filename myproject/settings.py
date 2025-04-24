@@ -142,3 +142,26 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'mailru195@yandex.ru'
 EMAIL_HOST_PASSWORD = 'lbmbywboxucntimh'
 DEFAULT_FROM_EMAIL = 'mailru195@yandex.ru'
+
+# Кэширование с использованием Redis
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+        },
+    }
+}
+
+# Настройки сессий
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+
+# Время жизни кэша
+CACHE_MIDDLEWARE_SECONDS = 600
+
+# Использовать кэширование для статических файлов
+SSTATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'

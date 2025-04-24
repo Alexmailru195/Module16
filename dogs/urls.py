@@ -1,10 +1,13 @@
 from django.urls import path
+from . import views
 from .views import (
     DogListView,
     dog_detail,
     dog_create,
     dog_update,
     dog_delete,
+    clear_dog_cache_view,
+    clear_all_cache_view,
 )
 
 urlpatterns = [
@@ -41,5 +44,19 @@ urlpatterns = [
         '<int:pk>/delete/',
         dog_delete,
         name='dog_delete'
+    ),
+
+    # Очистка кэша для конкретной собаки
+    path(
+        '<int:pk>/clear-cache/',
+        clear_dog_cache_view,
+        name='clear_dog_cache'
+    ),
+
+    # Очистка всего кэша
+    path(
+        'clear-all-cache/',
+        clear_all_cache_view,
+        name='clear_all_cache'
     ),
 ]

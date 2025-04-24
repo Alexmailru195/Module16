@@ -4,6 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from datetime import date
 
+
 class Breed(models.Model):
     """
     Модель для породы собаки.
@@ -80,3 +81,51 @@ class Dog(models.Model):
     class Meta:
         verbose_name = _("Собака")
         verbose_name_plural = _("Собаки")
+
+
+class Pedigree(models.Model):
+    """
+    Модель для родословной собаки.
+    """
+    dog = models.OneToOneField(
+        Dog,
+        on_delete=models.CASCADE,
+        related_name='pedigree'
+    )
+    father = models.ForeignKey(
+        Dog,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='father_of'
+    )
+    mother = models.ForeignKey(
+        Dog,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mother_of'
+    )
+    registration_number = models.CharField(
+        max_length=50,
+        unique=True
+    )
+    issued_by = models.CharField(
+        max_length=100
+    )
+    issue_date = models.DateField()
+
+    def clean(self):
+        """
+        Валидация для родословной:
+        1. Собака не может быть своим же отцом или матерью.
+        2. Отец и мать не могут быть одной и той же собакой.
+        """
+        if self.father == self.dog or self.mother == self.dog:
+            raise ValidationError(_("Собака не может быть своим же отцом или матерью."))
+
+        if self.father and self.mother and self.father == self.mother:
+            raise ValidationError(_("Отец и мать не могут быть одной и той же собакой."))
+
+    def __str__(self):
+        return f"Родословная {self.dog.name} (№{self.registration_number})"

@@ -96,10 +96,14 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.generic import ListView
-from .models import Dog
-from .forms import DogForm
+from django.forms import inlineformset_factory
+from django.http import JsonResponse
+from .models import Dog, Pedigree
+from .forms import DogForm, PedigreeForm
+from .services import get_dog_from_cache, clear_dog_cache, clear_all_cache
+from .utils import send_email
 
-# Class-Based View для списка собак
+
 class DogListView(ListView):
     """
     Отображает список всех собак.
@@ -110,44 +114,60 @@ class DogListView(ListView):
     context_object_name = 'dogs'
 
     def get_queryset(self):
-        """
-        Возвращает QuerySet собак:
-        - Только собак текущего пользователя, если он авторизован.
-        - Пустой QuerySet, если пользователь не авторизован.
-        """
         return Dog.objects.all().select_related('owner', 'breed')
 
-# Function-Based View для деталей собаки
 def dog_detail(request, pk):
     """
-    Отображает детальную информацию о собаке.
+    Отображает детальную информацию о собаке с использованием кэширования.
     """
-    dog = get_object_or_404(Dog, pk=pk)
+    dog = get_dog_from_cache(pk)
+    if not dog:
+        return render(request, 'dogs/dog_not_found.html')
+
     return render(request, 'dogs/dog_detail.html', {'dog': dog})
 
 
-# Function-Based View для создания новой собаки
 @login_required
 def dog_create(request):
     """
-    Обрабатывает создание новой собаки.
+    Обрабатывает создание новой собаки и её родословной.
     """
+    PedigreeFormSet = inlineformset_factory(
+        Dog, Pedigree, form=PedigreeForm, extra=1, can_delete=False, fk_name='dog'
+    )
+
     if request.method == "POST":
         form = DogForm(request.POST, request.FILES)
-        if form.is_valid():
+        pedigree_formset = PedigreeFormSet(request.POST, instance=Dog())
+
+        if form.is_valid() and pedigree_formset.is_valid():
             dog = form.save(commit=False)
             dog.owner = request.user  # Устанавливаем владельца как текущего пользователя
             dog.save()  # Сохраняем объект в базе данных
+
+            pedigree_formset.instance = dog
+            pedigree_formset.save()
+
+            # Отправляем уведомление на email пользователя
+            subject = "Новая собака зарегистрирована"
+            message = f"Вы успешно зарегистрировали собаку: {dog.name}."
+            recipient_list = [request.user.email]
+            send_email(subject, message, recipient_list)
+
             messages.success(request, "Собака успешно добавлена!")
             return redirect('dog_list')
         else:
             messages.error(request, "Ошибка в форме. Проверьте введенные данные.")
     else:
         form = DogForm()
-    return render(request, 'dogs/dog_form.html', {'form': form})
+        pedigree_formset = PedigreeFormSet(instance=Dog())
+
+    return render(request, 'dogs/dog_form.html', {
+        'form': form,
+        'pedigree_formset': pedigree_formset,
+    })
 
 
-# Function-Based View для обновления информации о собаке
 @login_required
 def dog_update(request, pk):
     """
@@ -161,20 +181,31 @@ def dog_update(request, pk):
         messages.error(request, "У вас нет прав для редактирования этой собаки.")
         return redirect('dog_list')
 
+    PedigreeFormSet = inlineformset_factory(
+        Dog, Pedigree, form=PedigreeForm, extra=1, can_delete=False, fk_name='dog'
+    )
+
     if request.method == "POST":
         form = DogForm(request.POST, request.FILES, instance=dog)
-        if form.is_valid():
+        pedigree_formset = PedigreeFormSet(request.POST, instance=dog)
+
+        if form.is_valid() and pedigree_formset.is_valid():
             form.save()
+            pedigree_formset.save()
             messages.success(request, "Информация о собаке успешно обновлена!")
             return redirect('dog_detail', pk=dog.pk)
         else:
             messages.error(request, "Ошибка в форме. Проверьте введенные данные.")
     else:
         form = DogForm(instance=dog)
-    return render(request, 'dogs/dog_form.html', {'form': form})
+        pedigree_formset = PedigreeFormSet(instance=dog)
+
+    return render(request, 'dogs/dog_form.html', {
+        'form': form,
+        'pedigree_formset': pedigree_formset,
+    })
 
 
-# Function-Based View для удаления собаки
 @login_required
 def dog_delete(request, pk):
     """
@@ -194,3 +225,19 @@ def dog_delete(request, pk):
         return redirect('dog_list')
 
     return render(request, 'dogs/dog_confirm_delete.html', {'dog': dog})
+
+
+def clear_dog_cache_view(request, pk):
+    """
+    Очищает кэш для конкретной собаки.
+    """
+    clear_dog_cache(pk)
+    return JsonResponse({'message': f'Кэш для собаки с ID {pk} очищен.'})
+
+
+def clear_all_cache_view(request):
+    """
+    Очищает весь кэш.
+    """
+    clear_all_cache()
+    return JsonResponse({'message': 'Весь кэш очищен.'})

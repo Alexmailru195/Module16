@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
+<div class="wrapper">
     <header>
         <nav>
             <ul>
@@ -36,9 +37,10 @@
         {% block content %}
         {% endblock %}
     </main>
-
+<div class="wrapper">
     <footer class="footer">
-        <p><span style="float: left, margin-right: 1px">&copy; 2025 MyProject. Все права защищены.</span> <span style="float: right, margin-right: 1px">Свяжитесь с нами: shph796@gmail.com</span></p>
+        <p>&copy; 2025 MyProject. Все права защищены. Свяжитесь с нами: shph796@gmail.com</p>
     </footer>
+</div></div>
 </body>
 </html>
