@@ -193,9 +193,7 @@
 #
 #     return render(request, 'users/generate_temp_password.html')
 
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
+from django.shortcuts import render, redirect
 from django.views.generic import View, TemplateView, FormView, CreateView
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth import get_user_model
