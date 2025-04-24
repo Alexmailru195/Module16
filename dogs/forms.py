@@ -1,5 +1,7 @@
 from django import forms
-from .models import Dog
+from django.core.exceptions import ValidationError
+
+from .models import Dog, Pedigree
 from datetime import date
 
 class DogForm(forms.ModelForm):
@@ -15,6 +17,11 @@ class DogForm(forms.ModelForm):
             'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'photo': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.birth_date:
+            self.initial['birth_date'] = self.instance.birth_date.strftime('%Y-%m-%d')
 
     def clean_birth_date(self):
         """
@@ -34,3 +41,41 @@ class DogForm(forms.ModelForm):
         # Вызываем валидацию модели
         self.instance.clean()
         return cleaned_data
+
+class PedigreeForm(forms.ModelForm):
+    class Meta:
+        model = Pedigree
+        fields = ['father', 'mother', 'registration_number', 'issued_by', 'issue_date']
+        labels = {
+            'father': 'Отец',
+            'mother': 'Мать',
+            'registration_number': 'Регистрационный номер',
+            'issued_by': 'Кем выдан',
+            'issue_date': 'Дата выдачи',
+        }
+        widgets = {
+            'issue_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        # Получаем текущую собаку из kwargs
+        self.dog = kwargs.pop('dog', None)
+        super().__init__(*args, **kwargs)
+
+        if self.instance and self.instance.issue_date:
+            self.initial['issue_date'] = self.instance.issue_date.strftime('%Y-%m-%d')
+
+        def clean(self):
+            cleaned_data = super().clean()
+            father = cleaned_data.get('father')
+            mother = cleaned_data.get('mother')
+
+            # Проверка: собака не может быть своим же отцом или матерью
+            if self.dog and (father == self.dog or mother == self.dog):
+                raise ValidationError("Собака не может быть своим же отцом или матерью.")
+
+            # Проверка: отец и мать не могут быть одной и той же собакой
+            if father and mother and father == mother:
+                raise ValidationError("Отец и мать не могут быть одной и той же собакой.")
+
+            return cleaned_data
