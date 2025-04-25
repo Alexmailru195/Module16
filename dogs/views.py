@@ -102,7 +102,7 @@ from .models import Dog, Pedigree
 from .forms import DogForm, PedigreeForm
 from .services import get_dog_from_cache, clear_dog_cache, clear_all_cache
 from .utils import send_email
-
+from django.contrib.auth.models import User
 
 class DogListView(ListView):
     """

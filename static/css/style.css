@@ -285,6 +285,14 @@ form button:hover {
     outline: none;
 }
 
+/* Стиль для фото собаки */
+.dog-avatar {
+    max-width: 100px;
+    height: auto;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
 /* Footer */
 .footer {
     background-color: #2c3e50;
