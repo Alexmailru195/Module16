@@ -8,10 +8,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # Маршруты для приложения users (корневой маршрут)
-    path('', include('users.urls')),  # Корневой маршрут для пользователей
+    path('', include('users.urls')),
 
     # Маршруты для приложения dogs
-    path('dogs/', include('dogs.urls')),  # Маршруты для собак
+    path('dogs/', include('dogs.urls')),
 ]
 
 # Добавляем обработку медиафайлов в режиме DEBUG

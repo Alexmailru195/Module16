@@ -1,243 +1,164 @@
-# from django.shortcuts import render, get_object_or_404, redirect
-# from django.contrib.auth.decorators import login_required
-# from django.contrib import messages
-# from .models import Dog
-# from .forms import DogForm
-#
-#
-# # Список всех собак
-# def dog_list(request):
-#     """
-#     Отображает список всех собак.
-#     """
-#     dogs = Dog.objects.all()
-#     return render(request, 'dogs/dog_list.html', {'dogs': dogs})
-#
-#
-# # Детали собаки
-# def dog_detail(request, pk):
-#     """
-#     Отображает детальную информацию о собаке.
-#     """
-#     dog = get_object_or_404(Dog, pk=pk)
-#     return render(request, 'dogs/dog_detail.html', {'dog': dog})
-#
-#
-# # Создание новой собаки
-# @login_required
-# def dog_create(request):
-#     """
-#     Обрабатывает создание новой собаки.
-#     """
-#     if request.method == "POST":
-#         form = DogForm(request.POST, request.FILES)
-#         if form.is_valid():
-#             dog = form.save(commit=False)  # Не сохраняем форму сразу
-#             dog.owner = request.user  # Устанавливаем владельца как текущего пользователя
-#             dog.save()  # Сохраняем объект в базе данных
-#             messages.success(request, "Собака успешно добавлена!")
-#             return redirect('dog_list')  # Перенаправление на список собак
-#         else:
-#             messages.error(request, "Ошибка в форме. Проверьте введенные данные.")
-#     else:
-#         form = DogForm()
-#     return render(request, 'dogs/dog_form.html', {'form': form})
-#
-#
-# # Обновление информации о собаке
-# @login_required
-# def dog_update(request, pk):
-#     """
-#     Обрабатывает обновление информации о собаке.
-#     Только владелец может редактировать свою собаку.
-#     """
-#     dog = get_object_or_404(Dog, pk=pk)
-#
-#     # Проверка, является ли текущий пользователь владельцем собаки
-#     if dog.owner != request.user:
-#         messages.error(request, "У вас нет прав для редактирования этой собаки.")
-#         return redirect('dog_list')
-#
-#     if request.method == "POST":
-#         form = DogForm(request.POST, request.FILES, instance=dog)
-#         if form.is_valid():
-#             form.save()
-#             messages.success(request, "Информация о собаке успешно обновлена!")
-#             return redirect('dog_detail', pk=dog.pk)  # Перенаправление на детали собаки
-#         else:
-#             messages.error(request, "Ошибка в форме. Проверьте введенные данные.")
-#     else:
-#         form = DogForm(instance=dog)
-#     return render(request, 'dogs/dog_form.html', {'form': form})
-#
-#
-# # Удаление собаки
-# @login_required
-# def dog_delete(request, pk):
-#     """
-#     Обрабатывает удаление собаки.
-#     Только владелец может удалить свою собаку.
-#     """
-#     dog = get_object_or_404(Dog, pk=pk)
-#
-#     # Проверка, является ли текущий пользователь владельцем собаки
-#     if dog.owner != request.user:
-#         messages.error(request, "У вас нет прав для удаления этой собаки.")
-#         return redirect('dog_list')
-#
-#     if request.method == "POST":
-#         dog.delete()
-#         messages.success(request, "Собака успешно удалена!")
-#         return redirect('dog_list')  # Перенаправление на список собак
-#
-#     return render(request, 'dogs/dog_confirm_delete.html', {'dog': dog})
-
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.views.generic import ListView
-from django.forms import inlineformset_factory
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
+from django.urls import reverse_lazy
 from django.http import JsonResponse
+from django.forms import inlineformset_factory
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from .models import Dog, Pedigree
 from .forms import DogForm, PedigreeForm
 from .services import get_dog_from_cache, clear_dog_cache, clear_all_cache
 from .utils import send_email
-from django.contrib.auth.models import User
+
 
 class DogListView(ListView):
     """
     Отображает список всех собак.
-    Если пользователь авторизован, отображаются только его собаки.
+    Авторизованный пользователь видит всех собак.
     """
     model = Dog
     template_name = 'dogs/dog_list.html'
     context_object_name = 'dogs'
 
     def get_queryset(self):
+        # Возвращаем всех собак без фильтрации по владельцу
         return Dog.objects.all().select_related('owner', 'breed')
 
-def dog_detail(request, pk):
+
+class DogDetailView(DetailView):
     """
     Отображает детальную информацию о собаке с использованием кэширования.
     """
-    dog = get_dog_from_cache(pk)
-    if not dog:
-        return render(request, 'dogs/dog_not_found.html')
+    model = Dog
+    template_name = 'dogs/dog_detail.html'
+    context_object_name = 'dog'
 
-    return render(request, 'dogs/dog_detail.html', {'dog': dog})
+    def get_object(self, queryset=None):
+        pk = self.kwargs.get('pk')
+        dog = get_dog_from_cache(pk)
+        if not dog:
+            return render(self.request, 'dogs/dog_not_found.html')
+        return dog
 
 
-@login_required
-def dog_create(request):
+class DogCreateView(LoginRequiredMixin, CreateView):
     """
     Обрабатывает создание новой собаки и её родословной.
     """
-    PedigreeFormSet = inlineformset_factory(
-        Dog, Pedigree, form=PedigreeForm, extra=1, can_delete=False, fk_name='dog'
-    )
+    model = Dog
+    form_class = DogForm
+    template_name = 'dogs/dog_form.html'
+    success_url = reverse_lazy('dog_list')
 
-    if request.method == "POST":
-        form = DogForm(request.POST, request.FILES)
-        pedigree_formset = PedigreeFormSet(request.POST, instance=Dog())
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        PedigreeFormSet = inlineformset_factory(
+            Dog, Pedigree, form=PedigreeForm, extra=1, can_delete=False, fk_name='dog'
+        )
+        if self.request.POST:
+            context['pedigree_formset'] = PedigreeFormSet(self.request.POST)
+        else:
+            context['pedigree_formset'] = PedigreeFormSet()
+        return context
 
-        if form.is_valid() and pedigree_formset.is_valid():
+    def form_valid(self, form):
+        context = self.get_context_data()
+        pedigree_formset = context['pedigree_formset']
+
+        if pedigree_formset.is_valid():
+            # Устанавливаем владельца как текущего пользователя
             dog = form.save(commit=False)
-            dog.owner = request.user  # Устанавливаем владельца как текущего пользователя
-            dog.save()  # Сохраняем объект в базе данных
+            dog.owner = self.request.user
+            dog.save()
 
+            # Сохраняем родословную
             pedigree_formset.instance = dog
             pedigree_formset.save()
 
             # Отправляем уведомление на email пользователя
             subject = "Новая собака зарегистрирована"
             message = f"Вы успешно зарегистрировали собаку: {dog.name}."
-            recipient_list = [request.user.email]
+            recipient_list = [self.request.user.email]
             send_email(subject, message, recipient_list)
 
-            messages.success(request, "Собака успешно добавлена!")
-            return redirect('dog_list')
+            messages.success(self.request, "Собака успешно добавлена!")
+            return super().form_valid(form)
         else:
-            messages.error(request, "Ошибка в форме. Проверьте введенные данные.")
-    else:
-        form = DogForm()
-        pedigree_formset = PedigreeFormSet(instance=Dog())
-
-    return render(request, 'dogs/dog_form.html', {
-        'form': form,
-        'pedigree_formset': pedigree_formset,
-    })
+            messages.error(self.request, "Ошибка в форме. Проверьте введенные данные.")
+            return self.form_invalid(form)
 
 
-@login_required
-def dog_update(request, pk):
+class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Обрабатывает обновление информации о собаке.
     Только владелец может редактировать свою собаку.
     """
-    dog = get_object_or_404(Dog, pk=pk)
+    model = Dog
+    form_class = DogForm
+    template_name = 'dogs/dog_form.html'
+    success_url = reverse_lazy('dog_list')
 
-    # Проверка, является ли текущий пользователь владельцем собаки
-    if dog.owner != request.user:
-        messages.error(request, "У вас нет прав для редактирования этой собаки.")
-        return redirect('dog_list')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        PedigreeFormSet = inlineformset_factory(
+            Dog, Pedigree, form=PedigreeForm, extra=1, can_delete=False, fk_name='dog'
+        )
+        if self.request.POST:
+            context['pedigree_formset'] = PedigreeFormSet(self.request.POST, instance=self.object)
+        else:
+            context['pedigree_formset'] = PedigreeFormSet(instance=self.object)
+        return context
 
-    PedigreeFormSet = inlineformset_factory(
-        Dog, Pedigree, form=PedigreeForm, extra=1, can_delete=False, fk_name='dog'
-    )
+    def form_valid(self, form):
+        context = self.get_context_data()
+        pedigree_formset = context['pedigree_formset']
 
-    if request.method == "POST":
-        form = DogForm(request.POST, request.FILES, instance=dog)
-        pedigree_formset = PedigreeFormSet(request.POST, instance=dog)
-
-        if form.is_valid() and pedigree_formset.is_valid():
+        if pedigree_formset.is_valid():
             form.save()
             pedigree_formset.save()
-            messages.success(request, "Информация о собаке успешно обновлена!")
-            return redirect('dog_detail', pk=dog.pk)
+            messages.success(self.request, "Информация о собаке успешно обновлена!")
+            return super().form_valid(form)
         else:
-            messages.error(request, "Ошибка в форме. Проверьте введенные данные.")
-    else:
-        form = DogForm(instance=dog)
-        pedigree_formset = PedigreeFormSet(instance=dog)
+            messages.error(self.request, "Ошибка в форме. Проверьте введенные данные.")
+            return self.form_invalid(form)
 
-    return render(request, 'dogs/dog_form.html', {
-        'form': form,
-        'pedigree_formset': pedigree_formset,
-    })
+    def test_func(self):
+        dog = self.get_object()
+        return dog.owner == self.request.user
 
 
-@login_required
-def dog_delete(request, pk):
+class DogDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """
     Обрабатывает удаление собаки.
     Только владелец может удалить свою собаку.
     """
-    dog = get_object_or_404(Dog, pk=pk)
+    model = Dog
+    template_name = 'dogs/dog_confirm_delete.html'
+    success_url = reverse_lazy('dog_list')
 
-    # Проверка, является ли текущий пользователь владельцем собаки
-    if dog.owner != request.user:
-        messages.error(request, "У вас нет прав для удаления этой собаки.")
-        return redirect('dog_list')
+    def test_func(self):
+        dog = self.get_object()
+        return dog.owner == self.request.user
 
-    if request.method == "POST":
-        dog.delete()
+    def delete(self, request, *args, **kwargs):
         messages.success(request, "Собака успешно удалена!")
-        return redirect('dog_list')
-
-    return render(request, 'dogs/dog_confirm_delete.html', {'dog': dog})
+        return super().delete(request, *args, **kwargs)
 
 
-def clear_dog_cache_view(request, pk):
+class ClearDogCacheView(View):
     """
     Очищает кэш для конкретной собаки.
     """
-    clear_dog_cache(pk)
-    return JsonResponse({'message': f'Кэш для собаки с ID {pk} очищен.'})
+    def get(self, request, pk):
+        clear_dog_cache(pk)
+        return JsonResponse({'message': f'Кэш для собаки с ID {pk} очищен.'})
 
 
-def clear_all_cache_view(request):
+class ClearAllCacheView(View):
     """
     Очищает весь кэш.
     """
-    clear_all_cache()
-    return JsonResponse({'message': 'Весь кэш очищен.'})
+    def get(self, request):
+        clear_all_cache()
+        return JsonResponse({'message': 'Весь кэш очищен.'})
