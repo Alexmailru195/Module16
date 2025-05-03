@@ -29,6 +29,13 @@ class CustomUser(AbstractUser):
         verbose_name="Аватар"
     )
 
+    ROLE_CHOICES = (
+        ('admin', 'Администратор'),
+        ('moderator', 'Модератор'),
+        ('user', 'Пользователь'),
+    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
+
     def __str__(self):
         return self.username
 

@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
@@ -14,16 +14,34 @@ from .utils import send_email
 
 class DogListView(ListView):
     """
-    Отображает список всех собак.
-    Авторизованный пользователь видит всех собак.
+    Отображает список собак с возможностью фильтрации по статусу.
+    Администраторы и модераторы могут видеть активных и деактивированных собак.
     """
     model = Dog
     template_name = 'dogs/dog_list.html'
     context_object_name = 'dogs'
 
     def get_queryset(self):
-        # Возвращаем всех собак без фильтрации по владельцу
-        return Dog.objects.all().select_related('owner', 'breed')
+        # Получаем параметр status из GET-запроса
+        status = self.request.GET.get('status', 'active')  # По умолчанию показываем активных собак
+
+        # Фильтруем собак в зависимости от статуса
+        if self.request.user.role in ['admin', 'moderator']:
+            # Администраторы и модераторы могут видеть все собаки
+            if status == 'inactive':
+                return Dog.objects.filter(is_active=False).select_related('owner', 'breed')
+            return Dog.objects.filter(is_active=True).select_related('owner', 'breed')
+        else:
+            # Обычные пользователи видят только активных собак
+            return Dog.objects.filter(is_active=True).select_related('owner', 'breed')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Передаем текущий статус в контекст для использования в шаблоне
+        context['current_status'] = self.request.GET.get('status', 'active')
+        # Добавляем список разрешенных ролей для проверки в шаблоне
+        context['allowed_roles'] = ['admin', 'moderator']
+        return context
 
 
 class DogDetailView(DetailView):
@@ -37,7 +55,7 @@ class DogDetailView(DetailView):
     def get_object(self, queryset=None):
         pk = self.kwargs.get('pk')
         dog = get_dog_from_cache(pk)
-        if not dog:
+        if not dog or (not dog.is_active and self.request.user.role not in ['admin', 'moderator']):
             return render(self.request, 'dogs/dog_not_found.html')
         return dog
 
@@ -92,7 +110,7 @@ class DogCreateView(LoginRequiredMixin, CreateView):
 class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Обрабатывает обновление информации о собаке.
-    Только владелец может редактировать свою собаку.
+    Владелец, администратор или модератор могут редактировать собаку.
     """
     model = Dog
     form_class = DogForm
@@ -125,13 +143,16 @@ class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         dog = self.get_object()
-        return dog.owner == self.request.user
+        return (
+            dog.owner == self.request.user or
+            self.request.user.role in ['admin', 'moderator']
+        )
 
 
 class DogDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """
     Обрабатывает удаление собаки.
-    Только владелец может удалить свою собаку.
+    Владелец, администратор или модератор могут удалить собаку.
     """
     model = Dog
     template_name = 'dogs/dog_confirm_delete.html'
@@ -139,7 +160,10 @@ class DogDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
     def test_func(self):
         dog = self.get_object()
-        return dog.owner == self.request.user
+        return (
+            dog.owner == self.request.user or
+            self.request.user.role in ['admin', 'moderator']
+        )
 
     def delete(self, request, *args, **kwargs):
         messages.success(request, "Собака успешно удалена!")
@@ -162,3 +186,28 @@ class ClearAllCacheView(View):
     def get(self, request):
         clear_all_cache()
         return JsonResponse({'message': 'Весь кэш очищен.'})
+
+
+class ToggleDogStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """
+    Класс для изменения статуса активности собаки.
+    Доступ разрешен только администраторам и модераторам.
+    """
+
+    def test_func(self):
+        # Проверяем, является ли пользователь администратором или модератором
+        return self.request.user.role in ['admin', 'moderator']
+
+    def get(self, request, pk):
+        # Получаем объект собаки по ID
+        dog = get_object_or_404(Dog, pk=pk)
+
+        # Инвертируем статус активности
+        dog.is_active = not dog.is_active
+        dog.save()
+
+        # Добавляем сообщение об успехе
+        messages.success(request, f'Статус собаки "{dog.name}" изменен.')
+
+        # Перенаправляем пользователя на страницу списка собак
+        return redirect('dog_list')

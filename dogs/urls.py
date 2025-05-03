@@ -7,6 +7,7 @@ from .views import (
     DogDeleteView,
     ClearDogCacheView,
     ClearAllCacheView,
+    ToggleDogStatusView,
 )
 
 urlpatterns = [
@@ -17,4 +18,5 @@ urlpatterns = [
     path('dog/<int:pk>/delete/', DogDeleteView.as_view(), name='dog_delete'),
     path('clear-dog-cache/<int:pk>/', ClearDogCacheView.as_view(), name='clear_dog_cache'),
     path('clear-all-cache/', ClearAllCacheView.as_view(), name='clear_all_cache'),
+    path('dog/<int:pk>/toggle-status/', ToggleDogStatusView.as_view(), name='toggle_dog_status'),
 ]

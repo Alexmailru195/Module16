@@ -56,6 +56,9 @@ class Dog(models.Model):
         null=True,
         verbose_name=_("Фото собаки")
     )
+    is_active = models.BooleanField(
+        default=True
+    )
 
     def clean(self):
         """

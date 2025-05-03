@@ -5,9 +5,18 @@
 
 {% block content %}
 <h2>Список собак</h2>
-<a href="{% url 'dog_create' %}" class="btn">Добавить собаку</a>
 
-<table>
+<!-- Кнопки переключения статуса -->
+<div class="filters">
+    <!-- Кнопки "Активные" и "Деактивированные" видны только админам и модераторам -->
+    {% if user.role in allowed_roles %}
+        <a href="?status=active" class="btn {% if current_status == 'active' %}active{% endif %}">Активные</a>
+        <a href="?status=inactive" class="btn {% if current_status == 'inactive' %}active{% endif %}">Деактивированные</a>
+    {% endif %}
+</div>
+
+<!-- Таблица со списком собак -->
+<table class="table table-striped">
     <thead>
         <tr>
             <th>Фото</th>
@@ -21,21 +30,37 @@
     <tbody>
         {% for dog in dogs %}
         <tr>
+            <!-- Фото -->
             <td>
                 {% if dog.photo %}
-                    <img src="{{ dog.photo.url }}" alt="{{ dog.name }}">
+                    <img src="{{ dog.photo.url }}" alt="{{ dog.name }}" width="100">
                 {% else %}
                     <em>Нет фото</em>
                 {% endif %}
             </td>
+            <!-- Имя -->
             <td>{{ dog.name }}</td>
+            <!-- Порода -->
             <td>{{ dog.breed }}</td>
+            <!-- Дата рождения -->
             <td>{{ dog.birth_date }}</td>
+            <!-- Владелец -->
             <td>{{ dog.owner.username }}</td>
+            <!-- Действия -->
             <td>
-                {% if user == dog.owner %}
-                    <a href="{% url 'dog_update' dog.pk %}" class="btn">Редактировать</a>
+                {% if user == dog.owner or user.role in allowed_roles %}
+                    <a href="{% url 'dog_update' dog.pk %}" class="btn btn-warning">Редактировать</a>
                     <a href="{% url 'dog_delete' dog.pk %}" class="btn btn-danger">Удалить</a>
+                {% endif %}
+                <!-- Кнопка для изменения статуса активности -->
+                {% if user.role in allowed_roles %}
+                    <a href="{% url 'toggle_dog_status' dog.pk %}">
+                        {% if dog.is_active %}
+                            Деактивировать
+                        {% else %}
+                            Активировать
+                        {% endif %}
+                    </a>
                 {% endif %}
             </td>
         </tr>
