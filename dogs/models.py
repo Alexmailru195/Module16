@@ -3,6 +3,9 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from datetime import date
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.mail import send_mail
 
 
 class Breed(models.Model):
@@ -58,6 +61,13 @@ class Dog(models.Model):
     )
     is_active = models.BooleanField(
         default=True
+    )
+    views_count = models.PositiveIntegerField(
+        default=0
+    )
+    description = models.TextField(
+        blank=True, null=True,
+        verbose_name = _("Описание")
     )
 
     def clean(self):
@@ -132,3 +142,18 @@ class Pedigree(models.Model):
 
     def __str__(self):
         return f"Родословная {self.dog.name} (№{self.registration_number})"
+
+@receiver(post_save, sender=Dog)
+def update_views_count(sender, instance, **kwargs):
+    if not kwargs.get('created'):  # Проверяем, что это не новая запись
+        if instance.views_count % 100 == 0 and instance.owner:
+            # Отправляем письмо владельцу, если просмотров кратно 100
+            subject = f"Ваша собака {instance.name} популярна!"
+            message = f"Карточка вашей собаки '{instance.name}' набрала {instance.views_count} просмотров."
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [instance.owner.email],
+                fail_silently=False,
+            )

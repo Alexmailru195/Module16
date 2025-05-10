@@ -49,18 +49,22 @@
             <!-- Действия -->
             <td>
                 {% if user == dog.owner or user.role in allowed_roles %}
-                    <a href="{% url 'dog_update' dog.pk %}" class="btn btn-warning">Редактировать</a>
-                    <a href="{% url 'dog_delete' dog.pk %}" class="btn btn-danger">Удалить</a>
+                <a href="{% url 'dog_update' dog.pk %}" class="btn btn-warning">Редактировать</a>
+                <a href="{% url 'dog_delete' dog.pk %}" class="btn btn-danger">Удалить</a>
                 {% endif %}
                 <!-- Кнопка для изменения статуса активности -->
                 {% if user.role in allowed_roles %}
-                    <a href="{% url 'toggle_dog_status' dog.pk %}">
-                        {% if dog.is_active %}
-                            Деактивировать
-                        {% else %}
-                            Активировать
-                        {% endif %}
-                    </a>
+                <a href="{% url 'toggle_dog_status' dog.pk %}">
+                    {% if dog.is_active %}
+                    Деактивировать
+                    {% else %}
+                    Активировать
+                    {% endif %}
+                </a>
+                {% endif %}
+                <!-- Кнопка "Подробнее о собаке" -->
+                {% if user != dog.owner %}
+                <a href="{% url 'dog_detail' dog.pk %}" class="btn">Подробнее о собаке</a>
                 {% endif %}
             </td>
         </tr>

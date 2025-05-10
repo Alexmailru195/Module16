@@ -10,6 +10,8 @@ from .models import Dog, Pedigree
 from .forms import DogForm, PedigreeForm
 from .services import get_dog_from_cache, clear_dog_cache, clear_all_cache
 from .utils import send_email
+from django import forms
+
 
 
 class DogListView(ListView):
@@ -47,16 +49,33 @@ class DogListView(ListView):
 class DogDetailView(DetailView):
     """
     Отображает детальную информацию о собаке с использованием кэширования.
+    Увеличивает счетчик просмотров, если пользователь не является владельцем собаки.
     """
     model = Dog
     template_name = 'dogs/dog_detail.html'
     context_object_name = 'dog'
 
     def get_object(self, queryset=None):
+        """
+        Получает объект собаки из кэша или базы данных.
+        Проверяет активность собаки и права доступа пользователя.
+        """
         pk = self.kwargs.get('pk')
         dog = get_dog_from_cache(pk)
-        if not dog or (not dog.is_active and self.request.user.role not in ['admin', 'moderator']):
+
+        if not dog:
+            # Если собака не найдена в кэше, загружаем её из базы данных
+            dog = get_object_or_404(Dog, pk=pk)
+
+        # Проверяем, активна ли собака, и имеет ли пользователь доступ
+        if not dog.is_active and self.request.user.role not in ['admin', 'moderator']:
             return render(self.request, 'dogs/dog_not_found.html')
+
+        # Увеличиваем счетчик просмотров, если пользователь не владелец
+        if self.request.user != dog.owner:
+            dog.views_count += 1
+            dog.save()
+
         return dog
 
 
@@ -106,6 +125,22 @@ class DogCreateView(LoginRequiredMixin, CreateView):
             messages.error(self.request, "Ошибка в форме. Проверьте введенные данные.")
             return self.form_invalid(form)
 
+class DogFullForm(forms.ModelForm):
+    """
+    Форма для полного редактирования данных о собаке.
+    Включает все поля модели Dog.
+    """
+    class Meta:
+        model = Dog
+        fields = '__all__'  # Все поля модели Dog будут доступны в форме
+
+class DogLimitedForm(forms.ModelForm):
+    """
+    Форма с ограниченным набором полей.
+    """
+    class Meta:
+        model = Dog
+        exclude = ('is_active', 'owner', 'views_count')  # Исключаем поля
 
 class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
@@ -113,39 +148,67 @@ class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     Владелец, администратор или модератор могут редактировать собаку.
     """
     model = Dog
-    form_class = DogForm
     template_name = 'dogs/dog_form.html'
     success_url = reverse_lazy('dog_list')
 
+    def get_form_class(self):
+        """
+        Возвращает форму в зависимости от уровня доступа пользователя.
+        """
+        if self.request.user.is_superuser or self.request.user == self.object.owner:
+            # Полный доступ для администратора или владельца
+            return DogFullForm
+        else:
+            # Ограниченный доступ для остальных пользователей (например, модераторов)
+            return DogLimitedForm
+
     def get_context_data(self, **kwargs):
+        """
+        Добавляет inline formset для родословной в контекст шаблона.
+        """
         context = super().get_context_data(**kwargs)
+
+        # Создаем inline formset для модели Pedigree
         PedigreeFormSet = inlineformset_factory(
             Dog, Pedigree, form=PedigreeForm, extra=1, can_delete=False, fk_name='dog'
         )
+
         if self.request.POST:
             context['pedigree_formset'] = PedigreeFormSet(self.request.POST, instance=self.object)
         else:
             context['pedigree_formset'] = PedigreeFormSet(instance=self.object)
+
         return context
 
     def form_valid(self, form):
+        """
+        Проверяет валидность основной формы и inline formset.
+        """
         context = self.get_context_data()
         pedigree_formset = context['pedigree_formset']
 
         if pedigree_formset.is_valid():
-            form.save()
+            # Сохраняем основную форму и inline formset
+            response = super().form_valid(form)
             pedigree_formset.save()
             messages.success(self.request, "Информация о собаке успешно обновлена!")
-            return super().form_valid(form)
+            return response
         else:
             messages.error(self.request, "Ошибка в форме. Проверьте введенные данные.")
             return self.form_invalid(form)
 
     def test_func(self):
+        """
+        Проверяет права доступа пользователя для редактирования собаки.
+        """
         dog = self.get_object()
+        user = self.request.user
+
+        # Разрешаем редактирование владельцу, администратору или модератору
         return (
-            dog.owner == self.request.user or
-            self.request.user.role in ['admin', 'moderator']
+            dog.owner == user or
+            user.is_superuser or
+            getattr(user, 'role', None) in ['admin', 'moderator']
         )
 
 
@@ -211,3 +274,4 @@ class ToggleDogStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
 
         # Перенаправляем пользователя на страницу списка собак
         return redirect('dog_list')
+
