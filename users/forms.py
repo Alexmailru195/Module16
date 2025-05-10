@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
-from .models import CustomUser
+from .models import CustomUser, Review
 
 # Форма для регистрации нового пользователя
 class CustomUserCreationForm(UserCreationForm):
@@ -90,3 +90,20 @@ class CustomPasswordChangeForm(PasswordChangeForm):
         if new_password1 and new_password2 and new_password1 != new_password2:
             raise forms.ValidationError("Новые пароли не совпадают.")
         return new_password2
+
+
+# Форма для создания отзыва
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['text', 'rating']
+        widgets = {
+            'text': forms.Textarea(attrs={'rows': 4}),
+        }
+
+    def save(self, commit=True):
+        review = super().save(commit=False)
+        if commit:
+            review.status = 'pending'  # Устанавливаем статус "На рассмотрении"
+            review.save()
+        return review

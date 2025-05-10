@@ -47,7 +47,7 @@ class Dog(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='dogs',
+        related_name='dogs_dogs',
         verbose_name=_("Владелец")
     )
     birth_date = models.DateField(
@@ -60,14 +60,17 @@ class Dog(models.Model):
         verbose_name=_("Фото собаки")
     )
     is_active = models.BooleanField(
-        default=True
+        default=True,
+        verbose_name=_("Активна")
     )
     views_count = models.PositiveIntegerField(
-        default=0
+        default=0,
+        verbose_name=_("Количество просмотров")
     )
     description = models.TextField(
-        blank=True, null=True,
-        verbose_name = _("Описание")
+        blank=True,
+        null=True,
+        verbose_name=_("Описание")
     )
 
     def clean(self):
@@ -121,12 +124,16 @@ class Pedigree(models.Model):
     )
     registration_number = models.CharField(
         max_length=50,
-        unique=True
+        unique=True,
+        verbose_name=_("Регистрационный номер")
     )
     issued_by = models.CharField(
-        max_length=100
+        max_length=100,
+        verbose_name=_("Выдано кем")
     )
-    issue_date = models.DateField()
+    issue_date = models.DateField(
+        verbose_name=_("Дата выдачи")
+    )
 
     def clean(self):
         """
@@ -143,11 +150,18 @@ class Pedigree(models.Model):
     def __str__(self):
         return f"Родословная {self.dog.name} (№{self.registration_number})"
 
+    class Meta:
+        verbose_name = _("Родословная")
+        verbose_name_plural = _("Родословные")
+
+
 @receiver(post_save, sender=Dog)
 def update_views_count(sender, instance, **kwargs):
-    if not kwargs.get('created'):  # Проверяем, что это не новая запись
+    """
+    Отправляет письмо владельцу, если количество просмотров собаки кратно 100.
+    """
+    if not kwargs.get('created'):
         if instance.views_count % 100 == 0 and instance.owner:
-            # Отправляем письмо владельцу, если просмотров кратно 100
             subject = f"Ваша собака {instance.name} популярна!"
             message = f"Карточка вашей собаки '{instance.name}' набрала {instance.views_count} просмотров."
             send_mail(

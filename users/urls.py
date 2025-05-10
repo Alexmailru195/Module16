@@ -9,6 +9,11 @@ from .views import (
     ChangePasswordView,
     UserLogoutView,
     GenerateTempPasswordView,
+    UserListView,
+    UserDetailView,
+    ReviewCreateView,
+    ReviewModerationListView,
+    ReviewModerationUpdateView,
 )
 
 urlpatterns = [
@@ -38,4 +43,19 @@ urlpatterns = [
 
     # Генерация временного пароля (восстановление доступа)
     path('generate-temp-password/', GenerateTempPasswordView.as_view(), name='generate_temp_password'),
+
+    # Список всех пользователей (доступно только модераторам/админам)
+    path('users/', UserListView.as_view(), name='user-list'),
+
+    # Подробный просмотр профиля пользователя (доступно только модераторам/админам)
+    path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
+
+    # Создание отзыва о пользователе (доступно всем авторизованным пользователям)
+    path('users/<int:user_id>/review/', ReviewCreateView.as_view(), name='review-create'),
+
+    # Модерация отзывов (список отзывов на рассмотрении)
+    path('reviews/moderation/', ReviewModerationListView.as_view(), name='review-moderation-list'),
+
+    # Модерация отзыва (одобрение/отклонение)
+    path('reviews/moderation/<int:pk>/', ReviewModerationUpdateView.as_view(), name='review-moderation-update'),
 ]

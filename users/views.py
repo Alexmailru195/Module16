@@ -1,5 +1,13 @@
-from django.shortcuts import render, redirect
-from django.views.generic import View, TemplateView, FormView, CreateView
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import (
+    View,
+    TemplateView,
+    FormView,
+    CreateView,
+    ListView,
+    DetailView,
+    UpdateView,
+)
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth import get_user_model
 from django.contrib import messages
@@ -8,43 +16,36 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 from django.urls import reverse_lazy
-from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 from .forms import (
     CustomUserCreationForm,
     CustomAuthenticationForm,
     CustomUserUpdateForm,
+    ReviewForm,
 )
-from .models import Dog
+from .models import Dog, Review
 from .utils import generate_random_password
 
 
+# Домашняя страница
 class HomeView(TemplateView):
-    """
-    Отображает домашнюю страницу.
-    """
     template_name = 'users/home.html'
 
 
+# Регистрация нового пользователя
 class UserCreateView(CreateView):
-    """
-    Регистрация нового пользователя.
-    """
     form_class = CustomUserCreationForm
     template_name = 'users/register.html'
     success_url = reverse_lazy('login')
 
     def form_valid(self, form):
-        # Генерация случайного пароля
         temp_password = generate_random_password()
-
-        # Создание пользователя
         user = form.save(commit=False)
         user.set_password(temp_password)
         user.save()
 
-        # Отправка письма с временным паролем
         subject = 'Ваш временный пароль'
         html_message = render_to_string(
             'emails/temp_password_email.html', {'temp_password': temp_password}
@@ -61,15 +62,13 @@ class UserCreateView(CreateView):
 
         messages.success(
             self.request,
-            "Регистрация успешна! Проверьте ваш email для получения временного пароля."
+            "Регистрация успешна! Проверьте ваш email для получения временного пароля.",
         )
         return super().form_valid(form)
 
 
+# Вход пользователя
 class UserLoginView(FormView):
-    """
-    Вход пользователя в систему.
-    """
     form_class = CustomAuthenticationForm
     template_name = 'users/login.html'
 
@@ -86,10 +85,8 @@ class UserLoginView(FormView):
             return redirect('login')
 
 
+# Профиль пользователя
 class ProfileView(LoginRequiredMixin, TemplateView):
-    """
-    Отображает информацию о текущем пользователе.
-    """
     template_name = 'users/profile.html'
 
     def get_context_data(self, **kwargs):
@@ -98,10 +95,8 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         return context
 
 
+# Обновление данных профиля
 class UpdateProfileView(LoginRequiredMixin, FormView):
-    """
-    Обрабатывает изменение данных пользователя.
-    """
     form_class = CustomUserUpdateForm
     template_name = 'users/update_profile.html'
     success_url = reverse_lazy('profile')
@@ -121,10 +116,8 @@ class UpdateProfileView(LoginRequiredMixin, FormView):
         return super().form_invalid(form)
 
 
+# Смена пароля
 class ChangePasswordView(LoginRequiredMixin, FormView):
-    """
-    Обрабатывает смену пароля пользователя.
-    """
     form_class = PasswordChangeForm
     template_name = 'users/change_password.html'
     success_url = reverse_lazy('profile')
@@ -145,20 +138,16 @@ class ChangePasswordView(LoginRequiredMixin, FormView):
         return super().form_invalid(form)
 
 
+# Выход из аккаунта
 class UserLogoutView(View):
-    """
-    Обрабатывает выход пользователя из системы.
-    """
     def get(self, request):
         logout(request)
         messages.info(request, "Вы успешно вышли из аккаунта.")
         return redirect('login')
 
 
+# Генерация временного пароля
 class GenerateTempPasswordView(View):
-    """
-    Генерирует временный пароль и отправляет его на email пользователя.
-    """
     template_name = 'users/generate_temp_password.html'
 
     def get(self, request):
@@ -173,14 +162,10 @@ class GenerateTempPasswordView(View):
             messages.error(request, "Пользователь с таким email не найден.")
             return redirect('generate_temp_password')
 
-        # Генерация случайного пароля
         temp_password = generate_random_password()
-
-        # Устанавливаем новый пароль
         user.set_password(temp_password)
         user.save()
 
-        # Отправляем письмо с временным паролем
         subject = 'Ваш временный пароль'
         html_message = render_to_string(
             'emails/temp_password_email.html', {'temp_password': temp_password}
@@ -199,10 +184,8 @@ class GenerateTempPasswordView(View):
         return redirect('login')
 
 
+# Список собак пользователя
 class MyDogsView(LoginRequiredMixin, TemplateView):
-    """
-    Отображает список собак текущего пользователя.
-    """
     template_name = 'users/my_dogs.html'
 
     def get_context_data(self, **kwargs):
@@ -210,3 +193,91 @@ class MyDogsView(LoginRequiredMixin, TemplateView):
         user = self.request.user
         context['dogs'] = user.dogs.all()
         return context
+
+
+# Список пользователей (для авторизованных пользователей)
+class UserListView(LoginRequiredMixin, ListView):
+    model = get_user_model()
+    template_name = 'users/user_list.html'
+    context_object_name = 'users'
+
+    def get_queryset(self):
+        # Исключаем администраторов и модераторов из списка для обычных пользователей
+        queryset = super().get_queryset()
+        if not self.request.user.is_staff and not self.request.user.groups.filter(name='moderators').exists():
+            queryset = queryset.exclude(is_staff=True).exclude(groups__name='moderators')
+        return queryset
+
+
+# Подробный просмотр пользователя
+class UserDetailView(DetailView):
+    model = get_user_model()
+    template_name = 'users/user_detail.html'
+    context_object_name = 'target_user'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['reviews'] = Review.objects.filter(target_user=self.object)
+        return context
+
+
+# Создание отзыва (для авторизованных пользователей, кроме модераторов/админов)
+class ReviewCreateView(LoginRequiredMixin, CreateView):
+    model = Review
+    form_class = ReviewForm
+    template_name = 'reviews/review_form.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['target_user'] = get_object_or_404(get_user_model(), id=self.kwargs['user_id'])
+        return context
+
+    def form_valid(self, form):
+        target_user_id = self.kwargs['user_id']
+        target_user = get_object_or_404(get_user_model(), id=target_user_id)
+
+        if self.request.user == target_user:
+            messages.error(self.request, "Вы не можете оставить отзыв самому себе.")
+            return super().form_invalid(form)
+
+        form.instance.author = self.request.user
+        form.instance.target_user = target_user
+        form.instance.status = 'pending'  # Устанавливаем статус "На рассмотрении"
+        messages.success(self.request, "Отзыв успешно отправлен на модерацию!")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('home')  # Перенаправляем на главную страницу
+
+
+# Модерация отзывов
+class ReviewModerationListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    model = Review
+    template_name = 'reviews/moderation_list.html'
+    context_object_name = 'reviews'
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.groups.filter(name='moderators').exists()
+
+    def get_queryset(self):
+        return Review.objects.filter(status='pending')
+
+
+class ReviewModerationUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Review
+    fields = ['status']
+    template_name = 'reviews/moderation_update.html'
+    success_url = reverse_lazy('review-moderation-list')
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.groups.filter(name='moderators').exists()
+
+    def form_valid(self, form):
+        review = form.save(commit=False)
+        if review.status == 'approved':
+            review.approve()
+            messages.success(self.request, f"Отзыв пользователя {review.author.username} одобрен.")
+        elif review.status == 'rejected':
+            review.reject()
+            messages.info(self.request, f"Отзыв пользователя {review.author.username} отклонён.")
+        return super().form_valid(form)

@@ -165,3 +165,8 @@ CACHE_MIDDLEWARE_SECONDS = 600
 
 # Использовать кэширование для статических файлов
 SSTATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+
+AUTH_GROUPS = {
+    'moderators': ['can_view_users', 'can_add_review'],
+    'admins': ['all']
+}
