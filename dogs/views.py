@@ -16,7 +16,6 @@ from django import forms
 
 class DogListView(ListView):
     """
-    Отображает список собак с возможностью фильтрации по статусу.
     Администраторы и модераторы могут видеть активных и деактивированных собак.
     """
     model = Dog
@@ -24,12 +23,10 @@ class DogListView(ListView):
     context_object_name = 'dogs'
 
     def get_queryset(self):
-        # Получаем параметр status из GET-запроса
         status = self.request.GET.get('status', 'active')  # По умолчанию показываем активных собак
 
         # Фильтруем собак в зависимости от статуса
         if self.request.user.role in ['admin', 'moderator']:
-            # Администраторы и модераторы могут видеть все собаки
             if status == 'inactive':
                 return Dog.objects.filter(is_active=False).select_related('owner', 'breed')
             return Dog.objects.filter(is_active=True).select_related('owner', 'breed')
@@ -39,9 +36,7 @@ class DogListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Передаем текущий статус в контекст для использования в шаблоне
         context['current_status'] = self.request.GET.get('status', 'active')
-        # Добавляем список разрешенных ролей для проверки в шаблоне
         context['allowed_roles'] = ['admin', 'moderator']
         return context
 

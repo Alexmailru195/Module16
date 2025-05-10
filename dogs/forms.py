@@ -35,10 +35,8 @@ class DogForm(forms.ModelForm):
     def clean(self):
         """
         Общая валидация формы.
-        Вызывает метод clean() модели для дополнительных проверок.
         """
         cleaned_data = super().clean()
-        # Вызываем валидацию модели
         self.instance.clean()
         return cleaned_data
 
@@ -74,7 +72,6 @@ class PedigreeForm(forms.ModelForm):
             if self.dog and (father == self.dog or mother == self.dog):
                 raise ValidationError("Собака не может быть своим же отцом или матерью.")
 
-            # Проверка: отец и мать не могут быть одной и той же собакой
             if father and mother and father == mother:
                 raise ValidationError("Отец и мать не могут быть одной и той же собакой.")
 

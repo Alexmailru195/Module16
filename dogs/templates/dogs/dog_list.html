@@ -53,7 +53,7 @@
                 <a href="{% url 'dog_delete' dog.pk %}" class="btn btn-danger">Удалить</a>
                 {% endif %}
                 <!-- Кнопка для изменения статуса активности -->
-                {% if user.role in allowed_roles %}
+                {% if user.role in allowed_roles or user.is_superuser %}
                 <a href="{% url 'toggle_dog_status' dog.pk %}">
                     {% if dog.is_active %}
                     Деактивировать

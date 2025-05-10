@@ -86,7 +86,6 @@ class Dog(models.Model):
         """
         today = date.today()
         age = today.year - self.birth_date.year
-        # Проверяем, прошел ли день рождения в этом году
         if (today.month, today.day) < (self.birth_date.month, self.birth_date.day):
             age -= 1
         return age

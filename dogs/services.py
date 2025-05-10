@@ -3,7 +3,6 @@ from django.core.cache import cache
 def get_dog_from_cache(dog_id):
     """
     Получает данные о собаке из кэша.
-    Если данных нет в кэше, загружает их из базы данных и сохраняет в кэш.
     """
     key = f'dog_{dog_id}'
     dog = cache.get(key)

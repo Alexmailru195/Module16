@@ -4,7 +4,7 @@ from .models import Breed, Dog
 @admin.register(Breed)
 class BreedAdmin(admin.ModelAdmin):
     """
-    Административная панель для модели Breed (Порода).
+    Административная панель для модели Breed.
     """
     list_display = ('name', 'description')
     search_fields = ('name',)
@@ -13,7 +13,7 @@ class BreedAdmin(admin.ModelAdmin):
 @admin.register(Dog)
 class DogAdmin(admin.ModelAdmin):
     """
-    Административная панель для модели Dog (Собака).
+    Административная панель для модели Dog.
     """
     list_display = ('name', 'breed', 'owner', 'birth_date')
     list_filter = ('breed', 'owner')
