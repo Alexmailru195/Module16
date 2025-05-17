@@ -4,9 +4,43 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
+from django.utils.text import slugify
+import random
+import string
+
+from pip._internal.utils._jaraco_text import _
+
+
+def generate_unique_slug(base_slug):
+    """
+    Генерирует уникальный slug, добавляя случайные символы при необходимости.
+    """
+    slug = base_slug
+    while CustomUser.objects.filter(slug=slug).exists():
+        random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        slug = f"{base_slug}-{random_suffix}"
+    return slug
 
 
 class CustomUser(AbstractUser):
+
+    slug = models.SlugField(
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name=_("URL-идентификатор"),
+        editable=False
+    )
+
+    def save(self, *args, **kwargs):
+        """
+        Генерация уникального slug при сохранении объекта.
+        """
+        if not self.slug:
+            base_slug = slugify(self.username)
+            self.slug = generate_unique_slug(base_slug)
+        super().save(*args, **kwargs)
+
     """
     Расширенная модель пользователя с дополнительными полями.
     """

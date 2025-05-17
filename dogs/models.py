@@ -34,6 +34,7 @@ class Dog(models.Model):
     """
     Модель для собаки.
     """
+    objects = None
     name = models.CharField(
         max_length=100,
         verbose_name=_("Кличка собаки")
@@ -47,7 +48,7 @@ class Dog(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='dogs_dogs',
+        related_name='dogs',
         verbose_name=_("Владелец")
     )
     birth_date = models.DateField(

@@ -1,5 +1,4 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, View
 from django.urls import reverse_lazy
@@ -13,7 +12,6 @@ from .utils import send_email
 from django import forms
 
 
-
 class DogListView(ListView):
     """
     Администраторы и модераторы могут видеть активных и деактивированных собак.
@@ -21,6 +19,7 @@ class DogListView(ListView):
     model = Dog
     template_name = 'dogs/dog_list.html'
     context_object_name = 'dogs'
+    paginate_by = 1  # Количество объектов на странице
 
     def get_queryset(self):
         status = self.request.GET.get('status', 'active')  # По умолчанию показываем активных собак

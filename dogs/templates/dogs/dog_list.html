@@ -73,6 +73,26 @@
             <td colspan="6" style="text-align: center;">Нет собак в базе данных.</td>
         </tr>
         {% endfor %}
+
+    <!-- Пагинация -->
+    <div class="pagination">
+        <span class="step-links">
+        <!-- Первая страница -->
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="text-link">Первая</a>
+            <a href="?page={{ page_obj.previous_page_number }}">←</a>
+        {% endif %}
+
+        <!-- Текущая страница -->
+        <span class="current">{{ page_obj.number }}</span>
+
+        <!-- Следующие страницы -->
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">→</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="text-link">Последняя</a>
+        {% endif %}
+        </span>
+    </div>
     </tbody>
 </table>
 {% endblock %}

@@ -25,7 +25,7 @@ from .forms import (
     CustomUserUpdateForm,
     ReviewForm,
 )
-from .models import Dog, Review
+from .models import Dog, Review, CustomUser
 from .utils import generate_random_password
 
 
@@ -87,12 +87,13 @@ class UserLoginView(FormView):
 
 # Профиль пользователя
 class ProfileView(LoginRequiredMixin, TemplateView):
+    model = CustomUser
     template_name = 'users/profile.html'
+    context_object_name = 'user_profile'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['user'] = self.request.user
-        return context
+    def get_object(self, queryset=None):
+        slug = self.kwargs.get('slug')  # Получаем slug из URL
+        return get_object_or_404(CustomUser, slug=slug)
 
 
 # Обновление данных профиля
