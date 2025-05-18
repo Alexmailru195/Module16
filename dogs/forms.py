@@ -5,11 +5,11 @@ from datetime import date
 
 
 class DogForm(forms.ModelForm):
-    """
-    Форма для создания или редактирования собаки.
-    """
 
 
+    """
+    Форма для создания или редактирования собаки
+    """
     class Meta:
         model = Dog
         fields = ['name', 'breed', 'birth_date', 'photo']
@@ -27,7 +27,7 @@ class DogForm(forms.ModelForm):
 
     def clean_birth_date(self):
         """
-        Валидация даты рождения: проверка, что дата не находится в будущем.
+        Валидация даты рождения: проверка, что дата не находится в будущем
         """
         birth_date = self.cleaned_data.get('birth_date')
         if birth_date and birth_date > date.today():
@@ -36,7 +36,7 @@ class DogForm(forms.ModelForm):
 
     def clean(self):
         """
-        Общая валидация формы.
+        Общая валидация формы
         """
         cleaned_data = super().clean()
         self.instance.clean()
@@ -59,7 +59,6 @@ class PedigreeForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        # Получаем текущую собаку из kwargs
         self.dog = kwargs.pop('dog', None)
         super().__init__(*args, **kwargs)
 
@@ -71,7 +70,7 @@ class PedigreeForm(forms.ModelForm):
             father = cleaned_data.get('father')
             mother = cleaned_data.get('mother')
 
-            # Проверка: собака не может быть своим же отцом или матерью
+            # Собака не может быть своим же отцом или матерью
             if self.dog and (father == self.dog or mother == self.dog):
                 raise ValidationError("Собака не может быть своим же отцом или матерью.")
 

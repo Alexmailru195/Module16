@@ -17,26 +17,26 @@
 
                 <!-- Ссылки для авторизованных пользователей -->
                 {% if user.is_authenticated %}
-                    <li><a href="{% url 'profile' slug=user.slug %}">Профиль</a></li>
-                    <li><a href="{% url 'update_profile' user.pk %}">Изменить данные</a></li>
-                    <li><a href="{% url 'change_password' %}">Сменить пароль</a></li>
-                    <li><a href="{% url 'dog_list' %}">Список собак</a></li>
+                <li><a href="{% url 'profile' slug=user.slug %}">Профиль</a></li>
+                <li><a href="{% url 'update_profile' user.pk %}">Изменить данные</a></li>
+                <li><a href="{% url 'change_password' %}">Сменить пароль</a></li>
+                <li><a href="{% url 'dog_list' %}">Список собак</a></li>
 
                 <!-- Ссылка на список пользователей только для администраторов -->
                 {% if user.is_superuser %}
-                    <li><a href="{% url 'user-list' %}">Список пользователей</a></li>
+                <li><a href="{% url 'user-list' %}">Список пользователей</a></li>
                 {% endif %}
-
-                    <li><a href="{% url 'dog_create' %}">Добавить собаку</a></li>
-                    <li><a href="{% url 'logout' %}">Выйти</a></li>
+                <li><a href="{% url 'dog_create' %}">Добавить собаку</a></li>
+                <li><a href="{% url 'logout' %}">Выйти</a></li>
                 {% if user.is_staff or is_moderator %}
                 <li><a href="{% url 'review-moderation-list' %}">Модерация отзывов</a></li>
                 {% endif %}
+
                 <!-- Ссылки для неавторизованных пользователей -->
                 {% else %}
-                    <li><a href="{% url 'register' %}">Регистрация</a></li>
-                    <li><a href="{% url 'login' %}">Войти</a></li>
-                    <li><a href="{% url 'generate_temp_password' %}">Восстановить пароль</a></li>
+                <li><a href="{% url 'register' %}">Регистрация</a></li>
+                <li><a href="{% url 'login' %}">Войти</a></li>
+                <li><a href="{% url 'generate_temp_password' %}">Восстановить пароль</a></li>
                 {% endif %}
             </ul>
         </nav>

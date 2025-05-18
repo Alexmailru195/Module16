@@ -10,7 +10,7 @@ import string
 
 def generate_random_slug(length=8):
     """
-    Генерирует случайный slug заданной длины.
+    Генерирует случайный slug заданной длины
     """
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
@@ -28,7 +28,7 @@ class CustomUser(AbstractUser):
 
     def save(self, *args, **kwargs):
         """
-        Автоматически генерирует slug, если он не был указан.
+        Автоматически генерирует slug, если он не был указан
         """
         if not self.slug:
             # Генерируем уникальный slug
@@ -43,7 +43,7 @@ class CustomUser(AbstractUser):
         return self.username
 
     """
-    Расширенная модель пользователя с дополнительными полями.
+    Расширенная модель пользователя с дополнительными полями
     """
     phone_number = models.CharField(
         max_length=15,
@@ -85,7 +85,7 @@ class CustomUser(AbstractUser):
 
 class Dog(models.Model):
     """
-    Модель для хранения информации о собаках.
+    Модель для хранения информации о собаках
     """
     name = models.CharField(
         max_length=100,
@@ -147,18 +147,24 @@ class Review(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def approve(self):
-        """Одобрение отзыва и отправка уведомления автору."""
+        """
+        Одобрение отзыва и отправка уведомления автору
+        """
         self.status = 'approved'
         self.save()
         self.send_approval_notification()
 
     def reject(self):
-        """Отклонение отзыва."""
+        """
+        Отклонение отзыва
+        """
         self.status = 'rejected'
         self.save()
 
     def send_approval_notification(self):
-        """Отправка уведомления автору отзыва о его одобрении."""
+        """
+        Отправка уведомления автору отзыва о его одобрении
+        """
         subject = 'Ваш отзыв был одобрен!'
         html_message = render_to_string('emails/review_approved_email.html', {'review': self})
         plain_message = strip_tags(html_message)

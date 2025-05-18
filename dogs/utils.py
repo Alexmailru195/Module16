@@ -4,7 +4,7 @@ from django.conf import settings
 
 def send_email(subject, message, recipient_list):
     """
-    Отправляет электронное письмо.
+    Отправляет электронное письмо
     """
     send_mail(
         subject=subject,

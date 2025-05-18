@@ -12,14 +12,14 @@ import string
 
 def generate_random_slug(length=8):
     """
-    Генерирует случайный slug заданной длины.
+    Генерирует случайный slug заданной длины
     """
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
 class Breed(models.Model):
     """
-    Модель для породы собаки.
+    Модель для породы собаки
     """
     name = models.CharField(
         max_length=100,
@@ -41,7 +41,7 @@ class Breed(models.Model):
 
 class Dog(models.Model):
     """
-    Модель для собаки.
+    Модель для собаки
     """
     objects = None
     name = models.CharField(
@@ -88,10 +88,9 @@ class Dog(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Автоматически генерирует slug, если он не был указан.
+        Автоматически генерирует slug, если он не был указан
         """
         if not self.slug:
-            # Генерируем уникальный slug
             while True:
                 new_slug = generate_random_slug()
                 if not Dog.objects.filter(slug=new_slug).exists():
@@ -104,14 +103,14 @@ class Dog(models.Model):
 
     def clean(self):
         """
-        Валидация: дата рождения не может быть в будущем.
+         Дата рождения не может быть в будущем
         """
         if self.birth_date and self.birth_date > date.today():
             raise ValidationError(_("Дата рождения не может быть в будущем."))
 
     def age(self):
         """
-        Вычисляет возраст собаки в годах на основе даты рождения.
+        Вычисляет возраст собаки в годах на основе даты рождения
         """
         today = date.today()
         age = today.year - self.birth_date.year
@@ -166,8 +165,8 @@ class Pedigree(models.Model):
     def clean(self):
         """
         Валидация для родословной:
-        1. Собака не может быть своим же отцом или матерью.
-        2. Отец и мать не могут быть одной и той же собакой.
+        1. Собака не может быть своим же отцом или матерью
+        2. Отец и мать не могут быть одной и той же собакой
         """
         if self.father == self.dog or self.mother == self.dog:
             raise ValidationError(_("Собака не может быть своим же отцом или матерью."))
@@ -186,7 +185,7 @@ class Pedigree(models.Model):
 @receiver(post_save, sender=Dog)
 def update_views_count(sender, instance, **kwargs):
     """
-    Отправляет письмо владельцу, если количество просмотров собаки кратно 100.
+    Отправляет письмо владельцу, если количество просмотров собаки кратно 100
     """
     if not kwargs.get('created'):
         if instance.views_count % 100 == 0 and instance.owner:

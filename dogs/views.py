@@ -15,10 +15,10 @@ from django import forms
 class DogListView(ListView):
     """
     Отображение списка собак с возможностью:
-    - Поиска по имени,
-    - Поиска по породе,
-    - Сортировки по имени, породе или дате рождения,
-    - Переключения между активными и деактивированными собаками.
+    Поиска по имени,
+    Поиска по породе,
+    Сортировки по имени, породе или дате рождения,
+    Переключения между активными и деактивированными собаками.
     """
     model = Dog
     template_name = 'dogs/dog_list.html'
@@ -26,38 +26,30 @@ class DogListView(ListView):
     paginate_by = 2
 
     def get_queryset(self):
-        # Получаем параметры из GET-запроса
         status = self.request.GET.get('status', 'active')  # По умолчанию показываем активных собак
         breed_search = self.request.GET.get('breed_search', '')  # Параметр для поиска по породе
         search_query = self.request.GET.get('search', '')  # Параметр для поиска по имени
         sort_by = self.request.GET.get('sort_by', 'name')  # Параметр для сортировки (по умолчанию "имя")
 
-        # Базовый запрос к базе данных
         queryset = Dog.objects.all()
 
-        # Фильтрация по статусу (активные/деактивированные)
         if self.request.user.role in ['admin', 'moderator']:
             if status == 'inactive':
                 queryset = queryset.filter(is_active=False)
             else:
                 queryset = queryset.filter(is_active=True)
         else:
-            # Обычные пользователи видят только активных собак
             queryset = queryset.filter(is_active=True)
 
-        # Фильтрация по имени (поиск)
         if search_query:
             queryset = queryset.filter(name__icontains=search_query)
 
-        # Фильтрация по породе (поиск)
         if breed_search:
             queryset = queryset.filter(breed__name__icontains=breed_search)
 
-        # Сортировка
         if sort_by in ['name', 'breed', 'birth_date']:
             queryset = queryset.order_by(sort_by)
 
-        # Оптимизация запросов
         queryset = queryset.select_related('owner')
 
         return queryset
@@ -65,11 +57,9 @@ class DogListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Добавляем дополнительные данные в контекст
         context['current_status'] = self.request.GET.get('status', 'active')
         context['allowed_roles'] = ['admin', 'moderator']
 
-        # Текущие параметры фильтрации и сортировки
         context['breed_search'] = self.request.GET.get('breed_search', '')
         context['search_query'] = self.request.GET.get('search', '')
         context['sort_by'] = self.request.GET.get('sort_by', 'name')
@@ -95,21 +85,17 @@ class DogDetailView(DetailView):
         slug = self.kwargs.get('slug')
         pk = self.kwargs.get('pk')
 
-        # Определяем, какой параметр используется: slug или pk
         if not slug and not pk:
             raise ValueError("Необходимо указать либо 'slug', либо 'pk'.")
 
-        # Попытка получить объект из кэша
         dog = get_dog_from_cache(slug=slug, pk=pk)
 
-        # Если объект не найден в кэше, загружаем его из базы данных
         if not dog:
             if slug:
                 dog = get_object_or_404(Dog, slug=slug)
             elif pk:
                 dog = get_object_or_404(Dog, pk=pk)
 
-        # Проверяем, активна ли собака, и имеет ли пользователь доступ
         if not dog.is_active and self.request.user.role not in ['admin', 'moderator']:
             return render(self.request, 'dogs/dog_not_found.html')
 
@@ -123,7 +109,7 @@ class DogDetailView(DetailView):
 
 class DogCreateView(LoginRequiredMixin, CreateView):
     """
-    Обрабатывает создание новой собаки и её родословной.
+    Обрабатывает создание новой собаки и её родословной
     """
     model = Dog
     form_class = DogForm
@@ -146,12 +132,10 @@ class DogCreateView(LoginRequiredMixin, CreateView):
         pedigree_formset = context['pedigree_formset']
 
         if pedigree_formset.is_valid():
-            # Устанавливаем владельца как текущего пользователя
             dog = form.save(commit=False)
             dog.owner = self.request.user
             dog.save()
 
-            # Сохраняем родословную
             pedigree_formset.instance = dog
             pedigree_formset.save()
 
@@ -174,20 +158,20 @@ class DogFullForm(forms.ModelForm):
     """
     class Meta:
         model = Dog
-        fields = '__all__'  # Все поля модели Dog будут доступны в форме
+        fields = '__all__'
 
 class DogLimitedForm(forms.ModelForm):
     """
-    Форма с ограниченным набором полей.
+    Форма с ограниченным набором полей
     """
     class Meta:
         model = Dog
-        exclude = ('is_active', 'owner', 'views_count')  # Исключаем поля
+        exclude = ('is_active', 'owner', 'views_count')
 
 class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
-    Обрабатывает обновление информации о собаке.
-    Владелец, администратор или модератор могут редактировать собаку.
+    Обрабатывает обновление информации о собаке
+    Владелец, администратор или модератор могут редактировать собаку
     """
     model = Dog
     template_name = 'dogs/dog_form.html'
@@ -195,22 +179,19 @@ class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def get_form_class(self):
         """
-        Возвращает форму в зависимости от уровня доступа пользователя.
+        Возвращает форму в зависимости от уровня доступа пользователя
         """
         if self.request.user.is_superuser or self.request.user == self.object.owner:
-            # Полный доступ для администратора или владельца
             return DogFullForm
         else:
-            # Ограниченный доступ для остальных пользователей (например, модераторов)
             return DogLimitedForm
 
     def get_context_data(self, **kwargs):
         """
-        Добавляет inline formset для родословной в контекст шаблона.
+        Добавляет inline formset для родословной в контекст шаблона
         """
         context = super().get_context_data(**kwargs)
 
-        # Создаем inline formset для модели Pedigree
         PedigreeFormSet = inlineformset_factory(
             Dog, Pedigree, form=PedigreeForm, extra=1, can_delete=False, fk_name='dog'
         )
@@ -224,13 +205,12 @@ class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         """
-        Проверяет валидность основной формы и inline formset.
+        Проверяет валидность основной формы и inline formset
         """
         context = self.get_context_data()
         pedigree_formset = context['pedigree_formset']
 
         if pedigree_formset.is_valid():
-            # Сохраняем основную форму и inline formset
             response = super().form_valid(form)
             pedigree_formset.save()
             messages.success(self.request, "Информация о собаке успешно обновлена!")
@@ -241,12 +221,11 @@ class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         """
-        Проверяет права доступа пользователя для редактирования собаки.
+        Проверяет права доступа пользователя для редактирования собаки
         """
         dog = self.get_object()
         user = self.request.user
 
-        # Разрешаем редактирование владельцу, администратору или модератору
         return (
             dog.owner == user or
             user.is_superuser or
@@ -256,8 +235,8 @@ class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
 class DogDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """
-    Обрабатывает удаление собаки.
-    Владелец, администратор или модератор могут удалить собаку.
+    Обрабатывает удаление собаки
+    Владелец, администратор или модератор могут удалить собаку
     """
     model = Dog
     template_name = 'dogs/dog_confirm_delete.html'
@@ -277,7 +256,7 @@ class DogDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 class ClearDogCacheView(View):
     """
-    Очищает кэш для конкретной собаки.
+    Очищает кэш для конкретной собаки
     """
     def get(self, request, pk):
         clear_dog_cache(pk)
@@ -286,7 +265,7 @@ class ClearDogCacheView(View):
 
 class ClearAllCacheView(View):
     """
-    Очищает весь кэш.
+    Очищает весь кэш
     """
     def get(self, request):
         clear_all_cache()
@@ -295,24 +274,20 @@ class ClearAllCacheView(View):
 
 class ToggleDogStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
     """
-    Класс для изменения статуса активности собаки.
-    Доступ разрешен только администраторам и модераторам.
+    Класс для изменения статуса активности собаки
+    Доступ разрешен только администраторам и модераторам
     """
 
     def test_func(self):
-        # Проверяем, является ли пользователь администратором или модератором
         return self.request.user.role in ['admin', 'moderator']
 
     def get(self, request, pk):
         # Получаем объект собаки по ID
         dog = get_object_or_404(Dog, pk=pk)
 
-        # Инвертируем статус активности
         dog.is_active = not dog.is_active
         dog.save()
 
-        # Добавляем сообщение об успехе
         messages.success(request, f'Статус собаки "{dog.name}" изменен.')
 
-        # Перенаправляем пользователя на страницу списка собак
         return redirect('dog_list')

@@ -71,14 +71,14 @@ class UserCreateView(CreateView):
 # Вход пользователя
 class UserLoginView(FormView):
     """
-    Представление для входа пользователя в систему.
+    Представление для входа пользователя в систему
     """
     form_class = CustomAuthenticationForm
     template_name = 'users/login.html'
 
     def form_valid(self, form):
         """
-        Обрабатывает успешную отправку формы.
+        Обрабатывает успешную отправку формы
         """
         username = form.cleaned_data.get('username')
         password = form.cleaned_data.get('password')
@@ -86,22 +86,17 @@ class UserLoginView(FormView):
         # Аутентификация пользователя
         user = authenticate(username=username, password=password)
         if user is not None:
-            # Авторизация пользователя
             login(self.request, user)
 
-            # Добавление сообщения об успешной авторизации
             messages.info(self.request, f"Добро пожаловать, {username}!")
 
-            # Проверка наличия slug у пользователя
             if hasattr(user, 'slug') and user.slug:
                 # Перенаправление на страницу профиля с slug
                 return redirect('profile', slug=user.slug)
             else:
-                # Если slug отсутствует, перенаправляем на домашнюю страницу или другую страницу
                 messages.warning(self.request, "Slug пользователя не найден.")
                 return redirect('home')  # Замените 'home' на нужный маршрут
         else:
-            # Если аутентификация не удалась
             messages.error(self.request, "Неверное имя пользователя или пароль.")
             return redirect('login')
 
@@ -114,25 +109,23 @@ class ProfileView(LoginRequiredMixin, TemplateView):
 
     def get_object(self, queryset=None):
         """
-        Получает объект пользователя по параметру slug из URL.
+        Получает объект пользователя по параметру slug из URL
         """
-        # Получаем значение slug из URL
         slug = self.kwargs.get('slug')
-        # Находим пользователя по slug
         return get_object_or_404(CustomUser, slug=slug)
 
 
 # Обновление данных профиля
 class UpdateProfileView(LoginRequiredMixin, FormView):
     """
-    Представление для обновления данных профиля пользователя.
+    Представление для обновления данных профиля пользователя
     """
     form_class = CustomUserUpdateForm
     template_name = 'users/update_profile.html'
 
     def get_form_kwargs(self):
         """
-        Передает текущего пользователя в форму как instance.
+        Передает текущего пользователя в форму как instance
         """
         kwargs = super().get_form_kwargs()
         kwargs['instance'] = self.request.user
@@ -140,7 +133,7 @@ class UpdateProfileView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):
         """
-        Обрабатывает успешную отправку формы.
+        Обрабатывает успешную отправку формы
         """
         form.save()
         messages.success(self.request, "Данные успешно обновлены!")
@@ -155,11 +148,9 @@ class UpdateProfileView(LoginRequiredMixin, FormView):
 
     def get_success_url(self):
         """
-        Генерирует URL для перенаправления после успешного обновления профиля.
+        Генерирует URL для перенаправления после успешного обновления профиля
         """
-        # Получаем объект пользователя
         user = self.request.user
-        # Генерируем URL для маршрута 'profile' с параметром slug
         return reverse('profile', kwargs={'slug': user.slug})
 
 
@@ -242,14 +233,13 @@ class MyDogsView(LoginRequiredMixin, TemplateView):
         return context
 
 
-# Список пользователей (для авторизованных пользователей)
+# Список пользователей
 class UserListView(LoginRequiredMixin, ListView):
     model = get_user_model()
     template_name = 'users/user_list.html'
     context_object_name = 'users'
 
     def get_queryset(self):
-        # Исключаем администраторов и модераторов из списка для обычных пользователей
         queryset = super().get_queryset()
         if not self.request.user.is_staff and not self.request.user.groups.filter(name='moderators').exists():
             queryset = queryset.exclude(is_staff=True).exclude(groups__name='moderators')
@@ -268,7 +258,7 @@ class UserDetailView(DetailView):
         return context
 
 
-# Создание отзыва (для авторизованных пользователей, кроме модераторов/админов)
+# Создание отзыва
 class ReviewCreateView(LoginRequiredMixin, CreateView):
     model = Review
     form_class = ReviewForm
