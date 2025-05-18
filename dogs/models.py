@@ -98,9 +98,6 @@ class Dog(models.Model):
                     break
         super().save(*args, **kwargs)
 
-    def __str__(self):
-        return self.name
-
     def clean(self):
         """
          Дата рождения не может быть в будущем

@@ -5,11 +5,10 @@ from datetime import date
 
 
 class DogForm(forms.ModelForm):
-
-
     """
     Форма для создания или редактирования собаки
     """
+
     class Meta:
         model = Dog
         fields = ['name', 'breed', 'birth_date', 'photo']

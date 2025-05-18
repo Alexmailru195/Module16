@@ -26,7 +26,7 @@ from .forms import (
     CustomUserUpdateForm,
     ReviewForm,
 )
-from .models import Dog, Review, CustomUser
+from .models import Review, CustomUser
 from .utils import generate_random_password
 
 

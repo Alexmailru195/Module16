@@ -23,7 +23,7 @@ class DogListView(ListView):
     model = Dog
     template_name = 'dogs/dog_list.html'
     context_object_name = 'dogs'
-    paginate_by = 2
+    paginate_by = 1
 
     def get_queryset(self):
         status = self.request.GET.get('status', 'active')  # По умолчанию показываем активных собак
@@ -151,22 +151,27 @@ class DogCreateView(LoginRequiredMixin, CreateView):
             messages.error(self.request, "Ошибка в форме. Проверьте введенные данные.")
             return self.form_invalid(form)
 
+
 class DogFullForm(forms.ModelForm):
     """
     Форма для полного редактирования данных о собаке.
     Включает все поля модели Dog.
     """
+
     class Meta:
         model = Dog
         fields = '__all__'
+
 
 class DogLimitedForm(forms.ModelForm):
     """
     Форма с ограниченным набором полей
     """
+
     class Meta:
         model = Dog
         exclude = ('is_active', 'owner', 'views_count')
+
 
 class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
@@ -227,9 +232,7 @@ class DogUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         user = self.request.user
 
         return (
-            dog.owner == user or
-            user.is_superuser or
-            getattr(user, 'role', None) in ['admin', 'moderator']
+            dog.owner == user or user.is_superuser or getattr(user, 'role', None) in ['admin', 'moderator']
         )
 
 
@@ -245,8 +248,7 @@ class DogDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def test_func(self):
         dog = self.get_object()
         return (
-            dog.owner == self.request.user or
-            self.request.user.role in ['admin', 'moderator']
+            dog.owner == self.request.user or self.request.user.role in ['admin', 'moderator']
         )
 
     def delete(self, request, *args, **kwargs):
@@ -258,6 +260,7 @@ class ClearDogCacheView(View):
     """
     Очищает кэш для конкретной собаки
     """
+
     def get(self, request, pk):
         clear_dog_cache(pk)
         return JsonResponse({'message': f'Кэш для собаки с ID {pk} очищен.'})
@@ -267,6 +270,7 @@ class ClearAllCacheView(View):
     """
     Очищает весь кэш
     """
+
     def get(self, request):
         clear_all_cache()
         return JsonResponse({'message': 'Весь кэш очищен.'})
