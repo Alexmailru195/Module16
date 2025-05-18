@@ -8,6 +8,7 @@ from django.views.generic import (
     DetailView,
     UpdateView,
 )
+from django.urls import reverse
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth import get_user_model
 from django.contrib import messages
@@ -69,18 +70,38 @@ class UserCreateView(CreateView):
 
 # Вход пользователя
 class UserLoginView(FormView):
+    """
+    Представление для входа пользователя в систему.
+    """
     form_class = CustomAuthenticationForm
     template_name = 'users/login.html'
 
     def form_valid(self, form):
+        """
+        Обрабатывает успешную отправку формы.
+        """
         username = form.cleaned_data.get('username')
         password = form.cleaned_data.get('password')
+
+        # Аутентификация пользователя
         user = authenticate(username=username, password=password)
         if user is not None:
+            # Авторизация пользователя
             login(self.request, user)
+
+            # Добавление сообщения об успешной авторизации
             messages.info(self.request, f"Добро пожаловать, {username}!")
-            return redirect('profile')
+
+            # Проверка наличия slug у пользователя
+            if hasattr(user, 'slug') and user.slug:
+                # Перенаправление на страницу профиля с slug
+                return redirect('profile', slug=user.slug)
+            else:
+                # Если slug отсутствует, перенаправляем на домашнюю страницу или другую страницу
+                messages.warning(self.request, "Slug пользователя не найден.")
+                return redirect('home')  # Замените 'home' на нужный маршрут
         else:
+            # Если аутентификация не удалась
             messages.error(self.request, "Неверное имя пользователя или пароль.")
             return redirect('login')
 
@@ -92,29 +113,54 @@ class ProfileView(LoginRequiredMixin, TemplateView):
     context_object_name = 'user_profile'
 
     def get_object(self, queryset=None):
-        slug = self.kwargs.get('slug')  # Получаем slug из URL
+        """
+        Получает объект пользователя по параметру slug из URL.
+        """
+        # Получаем значение slug из URL
+        slug = self.kwargs.get('slug')
+        # Находим пользователя по slug
         return get_object_or_404(CustomUser, slug=slug)
 
 
 # Обновление данных профиля
 class UpdateProfileView(LoginRequiredMixin, FormView):
+    """
+    Представление для обновления данных профиля пользователя.
+    """
     form_class = CustomUserUpdateForm
     template_name = 'users/update_profile.html'
-    success_url = reverse_lazy('profile')
 
     def get_form_kwargs(self):
+        """
+        Передает текущего пользователя в форму как instance.
+        """
         kwargs = super().get_form_kwargs()
         kwargs['instance'] = self.request.user
         return kwargs
 
     def form_valid(self, form):
+        """
+        Обрабатывает успешную отправку формы.
+        """
         form.save()
         messages.success(self.request, "Данные успешно обновлены!")
         return super().form_valid(form)
 
     def form_invalid(self, form):
+        """
+        Обрабатывает ошибки в форме.
+        """
         messages.error(self.request, "Ошибка в форме. Проверьте введенные данные.")
         return super().form_invalid(form)
+
+    def get_success_url(self):
+        """
+        Генерирует URL для перенаправления после успешного обновления профиля.
+        """
+        # Получаем объект пользователя
+        user = self.request.user
+        # Генерируем URL для маршрута 'profile' с параметром slug
+        return reverse('profile', kwargs={'slug': user.slug})
 
 
 # Смена пароля

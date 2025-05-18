@@ -27,7 +27,7 @@ urlpatterns = [
     path('login/', UserLoginView.as_view(), name='login'),
 
     # Просмотр профиля
-    path('profile/', ProfileView.as_view(), name='profile'),
+    path('profile/<slug:slug>/', ProfileView.as_view(), name='profile'),
 
     # Список собак пользователя
     path('my-dogs/', MyDogsView.as_view(), name='my_dogs'),

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import Breed, Dog
 
+
 @admin.register(Breed)
 class BreedAdmin(admin.ModelAdmin):
     """
@@ -15,7 +16,8 @@ class DogAdmin(admin.ModelAdmin):
     """
     Административная панель для модели Dog.
     """
-    list_display = ('name', 'breed', 'owner', 'birth_date')
+    list_display = ('name', 'breed', 'owner', 'birth_date', 'slug')
+    readonly_fields = ('slug',)
     list_filter = ('breed', 'owner')
     search_fields = ('name', 'owner__username')
 

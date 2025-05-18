@@ -6,6 +6,15 @@ from datetime import date
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
+import random
+import string
+
+
+def generate_random_slug(length=8):
+    """
+    Генерирует случайный slug заданной длины.
+    """
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
 class Breed(models.Model):
@@ -73,6 +82,25 @@ class Dog(models.Model):
         null=True,
         verbose_name=_("Описание")
     )
+    slug = models.SlugField(
+        unique=True, blank=True, null=True
+    )
+
+    def save(self, *args, **kwargs):
+        """
+        Автоматически генерирует slug, если он не был указан.
+        """
+        if not self.slug:
+            # Генерируем уникальный slug
+            while True:
+                new_slug = generate_random_slug()
+                if not Dog.objects.filter(slug=new_slug).exists():
+                    self.slug = new_slug
+                    break
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
     def clean(self):
         """

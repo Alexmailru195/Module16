@@ -1,13 +1,15 @@
 from django import forms
 from django.core.exceptions import ValidationError
-
 from .models import Dog, Pedigree
 from datetime import date
+
 
 class DogForm(forms.ModelForm):
     """
     Форма для создания или редактирования собаки.
     """
+
+
     class Meta:
         model = Dog
         fields = ['name', 'breed', 'birth_date', 'photo']
@@ -39,6 +41,7 @@ class DogForm(forms.ModelForm):
         cleaned_data = super().clean()
         self.instance.clean()
         return cleaned_data
+
 
 class PedigreeForm(forms.ModelForm):
     class Meta:

@@ -4,42 +4,43 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
-from django.utils.text import slugify
 import random
 import string
 
-from pip._internal.utils._jaraco_text import _
 
-
-def generate_unique_slug(base_slug):
+def generate_random_slug(length=8):
     """
-    Генерирует уникальный slug, добавляя случайные символы при необходимости.
+    Генерирует случайный slug заданной длины.
     """
-    slug = base_slug
-    while CustomUser.objects.filter(slug=slug).exists():
-        random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
-        slug = f"{base_slug}-{random_suffix}"
-    return slug
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
 class CustomUser(AbstractUser):
-
+    username = models.CharField(
+        max_length=150, unique=True
+    )
+    email = models.EmailField(
+        unique=True
+    )
     slug = models.SlugField(
-        unique=True,
-        blank=True,
-        null=True,
-        verbose_name=_("URL-идентификатор"),
-        editable=False
+        unique=True, blank=True, null=True
     )
 
     def save(self, *args, **kwargs):
         """
-        Генерация уникального slug при сохранении объекта.
+        Автоматически генерирует slug, если он не был указан.
         """
         if not self.slug:
-            base_slug = slugify(self.username)
-            self.slug = generate_unique_slug(base_slug)
+            # Генерируем уникальный slug
+            while True:
+                new_slug = generate_random_slug()
+                if not CustomUser.objects.filter(slug=new_slug).exists():
+                    self.slug = new_slug
+                    break
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.username
 
     """
     Расширенная модель пользователя с дополнительными полями.

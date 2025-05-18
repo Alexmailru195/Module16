@@ -1,33 +1,70 @@
+import logging
 from django.core.cache import cache
+from .models import Dog
 
-def get_dog_from_cache(dog_id):
+# Настройка логирования
+logger = logging.getLogger(__name__)
+
+
+def get_cache_key(slug=None, pk=None):
     """
-    Получает данные о собаке из кэша.
+    Генерирует ключ кэша на основе slug или pk.
     """
-    key = f'dog_{dog_id}'
-    dog = cache.get(key)
+    if slug:
+        return f"dog_slug_{slug}"
+    elif pk:
+        return f"dog_pk_{pk}"
+    return None
+
+
+def get_dog_from_cache(slug=None, pk=None):
+    """
+    Получает объект Dog из кэша по slug или pk.
+    Если объекта нет в кэше, загружает его из базы данных и сохраняет в кэш.
+    """
+    cache_key = get_cache_key(slug=slug, pk=pk)
+    if not cache_key:
+        logger.warning("Не указан slug или pk для получения объекта Dog.")
+        return None
+
+    # Попытка получить объект из кэша
+    dog = cache.get(cache_key)
 
     if not dog:
-        from .models import Dog
+        logger.info(f"Объект Dog с ключом {cache_key} не найден в кэше. Загрузка из базы данных.")
         try:
-            dog = Dog.objects.select_related('breed', 'owner').get(id=dog_id)
-            cache.set(key, dog, timeout=600)
+            if slug:
+                dog = Dog.objects.select_related('breed', 'owner').get(slug=slug)
+            elif pk:
+                dog = Dog.objects.select_related('breed', 'owner').get(pk=pk)
+
+            # Сохраняем объект в кэш на 10 минут (600 секунд)
+            cache.set(cache_key, dog, timeout=600)
+            logger.info(f"Объект Dog с ключом {cache_key} сохранен в кэш.")
         except Dog.DoesNotExist:
+            logger.error(f"Объект Dog с ключом {cache_key} не существует в базе данных.")
             return None
 
     return dog
 
 
-def clear_dog_cache(dog_id):
+def clear_dog_cache(slug=None, pk=None):
     """
-    Очищает кэш для конкретной собаки.
+    Очищает кэш для конкретной собаки по slug или pk.
     """
-    key = f'dog_{dog_id}'
-    cache.delete(key)
+    cache_key = get_cache_key(slug=slug, pk=pk)
+    if not cache_key:
+        logger.warning("Не указан slug или pk для очистки кэша.")
+        return
+
+    # Удаляем объект из кэша
+    cache.delete(cache_key)
+    logger.info(f"Кэш для объекта Dog с ключом {cache_key} очищен.")
 
 
 def clear_all_cache():
     """
-    Очищает весь кэш.
+    Очищает весь кэш, связанный с собаками.
     """
+    logger.info("Очистка всего кэша, связанного с собаками.")
     cache.clear()

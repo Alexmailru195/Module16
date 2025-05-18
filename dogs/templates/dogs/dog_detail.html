@@ -20,15 +20,15 @@
                 <p><strong>Дата рождения:</strong> {{ dog.birth_date|date:"d.m.Y" }}</p>
                 <p><strong>Количество просмотров:</strong> {{ dog.views_count }}</p>
                 {% if dog.photo %}
-                    <img style="width: 300px" src="{{ dog.photo.url }}" alt="{{ dog.name }}" class="dog-photo">
+                <img style="width: 300px" src="{{ dog.photo.url }}" alt="{{ dog.name }}" class="dog-photo">
                 {% else %}
-                    <p class="no-photo">Фото не загружено</p>
+                <p class="no-photo">Фото не загружено</p>
                 {% endif %}
                 <!-- Добавляем описание собаки -->
                 {% if dog.description %}
-                    <p><strong>Описание:</strong> {{ dog.description }}</p>
+                <p><strong>Описание:</strong> {{ dog.description }}</p>
                 {% else %}
-                    <p><strong>Описание:</strong> Описание отсутствует</p>
+                <p><strong>Описание:</strong> Описание отсутствует</p>
                 {% endif %}
             </div>
             <div class="dog-card-footer">

@@ -8,6 +8,7 @@
             <th>ID</th>
             <th>Имя</th>
             <th>Email</th>
+            <th>Последний вход</th>
             <th>Действия</th>
         </tr>
     </thead>
@@ -18,11 +19,14 @@
             <td>{{ user.username }}</td>
             <td>{{ user.email }}</td>
             <td>
-                <a href="{% url 'user-detail' user.id %}">Просмотреть</a>
-                <!-- Показываем ссылку только если пользователь не админ/модер и это не его профиль -->
-                {% if not user.is_staff and request.user != user %}
-                    <a href="{% url 'review-create' user.id %}">Оставить отзыв</a>
+                {% if user.last_login %}
+                    {{ user.last_login|date:"d.m.Y H:i" }}
+                {% else %}
+                    Никогда
                 {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'user-detail' user.id %}">Просмотреть</a>
             </td>
         </tr>
         {% endfor %}

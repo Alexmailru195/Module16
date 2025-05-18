@@ -12,7 +12,7 @@ from .views import (
 
 urlpatterns = [
     path('', DogListView.as_view(), name='dog_list'),
-    path('dog/<int:pk>/', DogDetailView.as_view(), name='dog_detail'),
+    path('dogs/<slug:slug>/', DogDetailView.as_view(), name='dog_detail'),
     path('dog/create/', DogCreateView.as_view(), name='dog_create'),
     path('dog/<int:pk>/update/', DogUpdateView.as_view(), name='dog_update'),
     path('dog/<int:pk>/delete/', DogDeleteView.as_view(), name='dog_delete'),

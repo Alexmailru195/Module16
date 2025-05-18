@@ -14,29 +14,66 @@ from django import forms
 
 class DogListView(ListView):
     """
-    Администраторы и модераторы могут видеть активных и деактивированных собак.
+    Отображение списка собак с возможностью:
+    - Поиска по имени,
+    - Поиска по породе,
+    - Сортировки по имени, породе или дате рождения,
+    - Переключения между активными и деактивированными собаками.
     """
     model = Dog
     template_name = 'dogs/dog_list.html'
     context_object_name = 'dogs'
-    paginate_by = 1  # Количество объектов на странице
+    paginate_by = 2
 
     def get_queryset(self):
+        # Получаем параметры из GET-запроса
         status = self.request.GET.get('status', 'active')  # По умолчанию показываем активных собак
+        breed_search = self.request.GET.get('breed_search', '')  # Параметр для поиска по породе
+        search_query = self.request.GET.get('search', '')  # Параметр для поиска по имени
+        sort_by = self.request.GET.get('sort_by', 'name')  # Параметр для сортировки (по умолчанию "имя")
 
-        # Фильтруем собак в зависимости от статуса
+        # Базовый запрос к базе данных
+        queryset = Dog.objects.all()
+
+        # Фильтрация по статусу (активные/деактивированные)
         if self.request.user.role in ['admin', 'moderator']:
             if status == 'inactive':
-                return Dog.objects.filter(is_active=False).select_related('owner', 'breed')
-            return Dog.objects.filter(is_active=True).select_related('owner', 'breed')
+                queryset = queryset.filter(is_active=False)
+            else:
+                queryset = queryset.filter(is_active=True)
         else:
             # Обычные пользователи видят только активных собак
-            return Dog.objects.filter(is_active=True).select_related('owner', 'breed')
+            queryset = queryset.filter(is_active=True)
+
+        # Фильтрация по имени (поиск)
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)
+
+        # Фильтрация по породе (поиск)
+        if breed_search:
+            queryset = queryset.filter(breed__name__icontains=breed_search)
+
+        # Сортировка
+        if sort_by in ['name', 'breed', 'birth_date']:
+            queryset = queryset.order_by(sort_by)
+
+        # Оптимизация запросов
+        queryset = queryset.select_related('owner')
+
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        # Добавляем дополнительные данные в контекст
         context['current_status'] = self.request.GET.get('status', 'active')
         context['allowed_roles'] = ['admin', 'moderator']
+
+        # Текущие параметры фильтрации и сортировки
+        context['breed_search'] = self.request.GET.get('breed_search', '')
+        context['search_query'] = self.request.GET.get('search', '')
+        context['sort_by'] = self.request.GET.get('sort_by', 'name')
+
         return context
 
 
@@ -54,12 +91,23 @@ class DogDetailView(DetailView):
         Получает объект собаки из кэша или базы данных.
         Проверяет активность собаки и права доступа пользователя.
         """
+        # Получаем параметры из URL
+        slug = self.kwargs.get('slug')
         pk = self.kwargs.get('pk')
-        dog = get_dog_from_cache(pk)
 
+        # Определяем, какой параметр используется: slug или pk
+        if not slug and not pk:
+            raise ValueError("Необходимо указать либо 'slug', либо 'pk'.")
+
+        # Попытка получить объект из кэша
+        dog = get_dog_from_cache(slug=slug, pk=pk)
+
+        # Если объект не найден в кэше, загружаем его из базы данных
         if not dog:
-            # Если собака не найдена в кэше, загружаем её из базы данных
-            dog = get_object_or_404(Dog, pk=pk)
+            if slug:
+                dog = get_object_or_404(Dog, slug=slug)
+            elif pk:
+                dog = get_object_or_404(Dog, pk=pk)
 
         # Проверяем, активна ли собака, и имеет ли пользователь доступ
         if not dog.is_active and self.request.user.role not in ['admin', 'moderator']:
@@ -268,4 +316,3 @@ class ToggleDogStatusView(LoginRequiredMixin, UserPassesTestMixin, View):
 
         # Перенаправляем пользователя на страницу списка собак
         return redirect('dog_list')
-
